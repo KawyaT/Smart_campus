@@ -1,0 +1,15 @@
+# Java / Spring Boot
+target/
+*.class
+*.jar
+
+# React / Node
+node_modules/
+build/
+dist/
+.env
+
+# IDE files
+.idea/
+.vscode/
+*.iml
