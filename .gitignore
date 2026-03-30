@@ -16,3 +16,4 @@ frontend/dist/
 .vscode/
 *.iml
 .DS_Store
+smart-campus-client/node_modules/@rolldown/binding-win32-x64-msvc/rolldown-binding.win32-x64-msvc.node
