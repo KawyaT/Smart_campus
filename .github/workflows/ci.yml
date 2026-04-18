@@ -28,4 +28,4 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
         
     - name: Build project
-      run: ./mvnw clean compile
+      run: mvn clean compile
