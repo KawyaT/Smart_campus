@@ -1,6 +1,6 @@
 package com.smartcampus.service.resource;
 
-import com.smartcampus.dto.request.resource.ResourceRequest;
+import com.smartcampus.dto.request.ResourceRequest;
 import com.smartcampus.dto.responce.resource.ResourceResponse;
 import com.smartcampus.exception.ResourceNotFoundException;
 import com.smartcampus.model.resource.Resource;
@@ -72,15 +72,15 @@ public class ResourceService {
 
     public List<ResourceResponse> searchResources(
         ResourceType type,
+        ResourceStatus status,
         Integer minCapacity,
-        String location,
-        ResourceStatus status
+        String location
     ) {
         return resourceRepository.findAll().stream()
             .filter(r -> type == null || r.getType() == type)
+            .filter(r -> status == null || r.getStatus() == status)
             .filter(r -> minCapacity == null || (r.getCapacity() != null && r.getCapacity() >= minCapacity))
             .filter(r -> location == null || (r.getLocation() != null && r.getLocation().toLowerCase().contains(location.toLowerCase())))
-            .filter(r -> status == null || r.getStatus() == status)
             .map(this::mapToResponse)
             .toList();
     }
