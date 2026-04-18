@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import TicketAPI from '../api/ticketAPI';
-import '../styles/TicketDashboard.css';
+import TicketAPI from '../../api/ticketAPI';
+import '../../styles/TicketDashboard.css';
 
 const TicketDashboard = () => {
   const [stats, setStats] = useState({

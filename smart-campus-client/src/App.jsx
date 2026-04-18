@@ -1,121 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
+import TicketDashboard from "./pages/tickets/TicketDashboard";
+import TicketsPage from "./pages/tickets/TicketsPage";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-container">
+      {/* Sidebar Navigation */}
+      <aside className="sidebar glass-effect">
+        <div className="logo-container">
+          <div className="logo-icon">SC</div>
+          <h2>Smart Campus</h2>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        
+        <nav className="nav-menu">
+          <div className="nav-section">OPERATIONS</div>
+          
+          <button 
+            className={`nav-item ${activeTab === "dashboard" ? "active" : ""}`}
+            onClick={() => setActiveTab("dashboard")}
+          >
+            <span className="icon">??</span>
+            Dashboard
+          </button>
+          
+          <button 
+            className={`nav-item ${activeTab === "tickets" ? "active" : ""}`}
+            onClick={() => setActiveTab("tickets")}
+          >
+            <span className="icon">???</span>
+            All Tickets
+          </button>
 
-      <div className="ticks"></div>
+          <button className="nav-item">
+            <span className="icon">??</span>
+            Facilities
+          </button>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <button className="nav-item">
+            <span className="icon">??</span>
+            Bookings
+          </button>
+          
+          <button className="nav-item">
+            <span className="icon">??</span>
+            Settings
+          </button>
+        </nav>
+        
+        <div className="user-profile">
+          <div className="avatar">JD</div>
+          <div className="user-info">
+            <p className="name">John Doe</p>
+            <p className="role">Operations Admin</p>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </aside>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* Main Content */}
+      <main className="main-content">
+        <div className="top-nav glass-effect">
+          <div className="search-bar">
+            <span className="search-icon">??</span>
+            <input type="text" placeholder="Search campus operations..." />
+          </div>
+          <div className="top-actions">
+            <button className="notification-btn">??</button>
+          </div>
+        </div>
+
+        <div className="content-wrapper scrollable">
+          {activeTab === "dashboard" && <TicketDashboard />}
+          {activeTab === "tickets" && <TicketsPage />}
+        </div>
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;

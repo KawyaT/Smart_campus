@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import TicketCard from '../components/TicketCard';
-import TicketForm from '../components/TicketForm';
-import TicketAPI from '../api/ticketAPI';
-import '../styles/TicketsPage.css';
+import TicketCard from '../../components/TicketCard';
+import TicketForm from '../../components/TicketForm';
+import TicketAPI from '../../api/ticketAPI';
+import '../../styles/TicketsPage.css';
 
 const TicketsPage = () => {
   const [tickets, setTickets] = useState([]);
