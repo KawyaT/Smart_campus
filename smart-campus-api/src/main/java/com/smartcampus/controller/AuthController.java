@@ -63,7 +63,6 @@ public class AuthController {
         String name = (String) signupRequest.get("name");
         String email = (String) signupRequest.get("email");
         String password = (String) signupRequest.get("password");
-        String roleString = (String) signupRequest.get("role");
         
         log.info("Registration attempt for user: {}", email);
         
@@ -75,13 +74,12 @@ public class AuthController {
                 ));
             }
             
-            Role role = roleString != null ? Role.fromString(roleString) : Role.USER;
-            
+            // Public signup is always USER; admin is not self-service
             User user = User.builder()
                     .name(name)
                     .email(email)
                     .password(passwordEncoder.encode(password))
-                    .role(role)
+                    .role(Role.USER)
                     .build();
             
             User savedUser = userService.createUser(user);

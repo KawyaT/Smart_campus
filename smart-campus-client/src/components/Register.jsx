@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { authAPI } from '../api/auth';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -8,32 +8,16 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'USER',
   });
-  const [roles, setRoles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
   const { register, loading, error, clearError } = useAuth();
-
-  // Fetch available roles on component mount
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const rolesData = await authAPI.getRoles();
-        setRoles(rolesData);
-      } catch (error) {
-        console.error('Failed to fetch roles:', error);
-        // Set default roles if API fails
-        setRoles(['USER', 'ADMIN', 'TECHNICIAN']);
-      }
-    };
-    fetchRoles();
-  }, []);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -76,127 +60,136 @@ const Register = () => {
 
     setIsSubmitting(true);
 
-    const { confirmPassword, ...userData } = formData;
-    const result = await register(userData);
+    const result = await register({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+    });
     setIsSubmitting(false);
 
-    return result;
+    if (result?.success) {
+      navigate('/login', {
+        replace: true,
+        state: { fromRegister: true, email: formData.email },
+      });
+    }
   };
 
   return (
-    <div className="min-h-screen auth-gradient flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-xl card-shadow w-full max-w-lg">
-        <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">Register</h2>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h1 className="auth-title">Create account</h1>
+          <p className="auth-subtitle">
+            New accounts are created as standard users. Admin access is assigned separately by your team.
+          </p>
+        </div>
+
         {(error || formError) && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 border border-red-200 text-sm">
-            {error || formError}
+          <div className="auth-error">
+            <svg xmlns="http://www.w3.org/2000/svg" className="auth-input-icon" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error || formError}</span>
           </div>
         )}
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              Full Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter your full name"
-              required
-              disabled={loading || isSubmitting}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 form-input disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="auth-field">
+            <label htmlFor="name">Full name</label>
+            <div className="auth-input-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" className="auth-input-icon" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <input
+                id="name"
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                required
+                disabled={loading || isSubmitting}
+                className="auth-input"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              required
-              disabled={loading || isSubmitting}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 form-input disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
+          <div className="auth-field">
+            <label htmlFor="email">Email address</label>
+            <div className="auth-input-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" className="auth-input-icon" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your email"
+                required
+                disabled={loading || isSubmitting}
+                className="auth-input"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              required
-              disabled={loading || isSubmitting}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 form-input disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
+          <div className="auth-field">
+            <label htmlFor="password">Password</label>
+            <div className="auth-input-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" className="auth-input-icon" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                required
+                disabled={loading || isSubmitting}
+                className="auth-input"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm your password"
-              required
-              disabled={loading || isSubmitting}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 form-input disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
+          <div className="auth-field">
+            <label htmlFor="confirmPassword">Confirm password</label>
+            <div className="auth-input-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" className="auth-input-icon" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <input
+                id="confirmPassword"
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm your password"
+                required
+                disabled={loading || isSubmitting}
+                className="auth-input"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-              Role
-            </label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              disabled={loading || isSubmitting}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 form-input disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              {roles.map(role => (
-                <option key={role} value={role}>
-                  {role.charAt(0) + role.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full btn-gradient text-white py-3 rounded-lg font-semibold transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none mt-4"
-            disabled={loading || isSubmitting}
-          >
-            {isSubmitting ? 'Registering...' : 'Register'}
+          <button type="submit" className="auth-submit" disabled={loading || isSubmitting}>
+            {isSubmitting ? (
+              <span>Creating account...</span>
+            ) : (
+              'Create account'
+            )}
           </button>
         </form>
 
-        <div className="text-center mt-8 pt-6 border-t border-gray-200">
-          <p className="text-gray-600 text-sm">
+        <div className="auth-footer">
+          <p>
             Already have an account?{' '}
-            <a href="/login" className="text-primary-600 hover:text-primary-700 font-medium hover:underline">
-              Login here
-            </a>
+            <Link to="/login" className="auth-link">
+              Sign in here
+            </Link>
           </p>
         </div>
       </div>

@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../api/auth';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -35,6 +37,7 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
+        toast.success('Login successful');
         return { success: true, message: response.message };
       } else {
         setError(response.message);
@@ -57,8 +60,8 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(userData);
       
       if (response.success) {
-        setUser(response.user);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        // Do not auto-login: user must sign in explicitly after registration
+        toast.success('Account created. Please sign in.');
         return { success: true, message: response.message };
       } else {
         setError(response.message);
@@ -78,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('user');
     setError(null);
+    toast.info('Logged out');
   };
 
   // Clear error

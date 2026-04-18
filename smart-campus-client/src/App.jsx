@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
@@ -32,7 +34,8 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="app">
+        <div className="app" data-theme="smartuni">
+          <ToastContainer position="top-right" autoClose={2500} pauseOnHover theme="light" />
           <Routes>
             {/* Public routes - redirect to dashboard if already authenticated */}
             <Route path="/login" element={
