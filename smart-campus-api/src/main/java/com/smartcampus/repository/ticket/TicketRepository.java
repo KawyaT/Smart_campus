@@ -12,18 +12,24 @@ import java.util.Optional;
 @Repository
 public interface TicketRepository extends MongoRepository<Ticket, String> {
 
-    List<Ticket> findByStatus(String status);
+    List<Ticket> findByStatus(Ticket.TicketStatus status);
 
-    List<Ticket> findByPriority(String priority);
+    List<Ticket> findByPriority(Ticket.TicketPriority priority);
 
-    List<Ticket> findByAssignedTo(String assignedTo);
+    List<Ticket> findBySeverity(Ticket.TicketSeverity severity);
 
-    List<Ticket> findByCreatedBy(String createdBy);
+    List<Ticket> findByAssignedToId(String assignedToId);
+
+    List<Ticket> findByReporterId(String reporterId);
 
     List<Ticket> findByCategory(String category);
 
+    List<Ticket> findByDepartment(String department);
+
+    List<Ticket> findByLocation(String location);
+
     @Query("{ 'status': ?0, 'priority': ?1 }")
-    List<Ticket> findByStatusAndPriority(String status, String priority);
+    List<Ticket> findByStatusAndPriority(Ticket.TicketStatus status, Ticket.TicketPriority priority);
 
     @Query("{ 'createdAt': { $gte: ?0, $lte: ?1 } }")
     List<Ticket> findTicketsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate);
@@ -31,8 +37,17 @@ public interface TicketRepository extends MongoRepository<Ticket, String> {
     @Query("{ $or: [ { 'title': { $regex: ?0, $options: 'i' } }, { 'description': { $regex: ?0, $options: 'i' } } ] }")
     List<Ticket> searchTickets(String keyword);
 
-    List<Ticket> findByStatusOrderByPriorityDesc(String status);
+    List<Ticket> findByStatusOrderByPriorityDesc(Ticket.TicketStatus status);
 
     @Query("{ 'status': { $in: ['OPEN', 'IN_PROGRESS'] } }")
     List<Ticket> findOpenTickets();
+    
+    @Query("{ 'dueDate': { $lt: new Date() }, 'status': { $in: ['OPEN', 'IN_PROGRESS'] } }")
+    List<Ticket> findOverdueTickets();
+    
+    @Query("{ 'tags': ?0 }")
+    List<Ticket> findByTag(String tag);
+    
+    @Query("{ 'feedbackProvided': false, 'status': 'CLOSED' }")
+    List<Ticket> findClosedTicketsWithoutFeedback();
 }

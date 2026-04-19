@@ -2,7 +2,9 @@ package com.smartcampus.controller.ticket;
 
 import com.smartcampus.dto.request.CreateTicketRequest;
 import com.smartcampus.dto.request.UpdateTicketRequest;
+import com.smartcampus.dto.responce.TicketDetailResponse;
 import com.smartcampus.dto.responce.TicketResponse;
+import com.smartcampus.model.ticket.Ticket;
 import com.smartcampus.service.ticket.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,10 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -30,7 +31,8 @@ public class TicketController {
     public ResponseEntity<TicketResponse> createTicket(@Valid @RequestBody CreateTicketRequest request) {
         // In a real scenario, get userId from authentication context
         String userId = "user-123"; // TODO: Replace with actual user from auth
-        TicketResponse response = ticketService.createTicket(request, userId);
+        String userName = "Current User";
+        TicketResponse response = ticketService.createTicket(request, userId, userName);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -47,10 +49,12 @@ public class TicketController {
      * Get ticket by ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<TicketResponse> getTicketById(@PathVariable String id) {
-        Optional<TicketResponse> ticket = ticketService.getTicketById(id);
-        return ticket.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<TicketDetailResponse> getTicketById(@PathVariable String id) {
+        try {
+            return ResponseEntity.ok(ticketService.getTicketById(id));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**
@@ -59,9 +63,11 @@ public class TicketController {
     @PutMapping("/{id}")
     public ResponseEntity<TicketResponse> updateTicket(@PathVariable String id,
                                                        @RequestBody UpdateTicketRequest request) {
-        Optional<TicketResponse> updatedTicket = ticketService.updateTicket(id, request);
-        return updatedTicket.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(ticketService.updateTicket(id, request));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**
@@ -69,11 +75,8 @@ public class TicketController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteTicket(@PathVariable String id) {
-        boolean deleted = ticketService.deleteTicket(id);
-        if (deleted) {
-            return ResponseEntity.ok(Map.of("message", "Ticket deleted successfully"));
-        }
-        return ResponseEntity.notFound().build();
+        ticketService.deleteTicket(id);
+        return ResponseEntity.ok(Map.of("message", "Ticket deleted successfully"));
     }
 
     /**
@@ -81,8 +84,12 @@ public class TicketController {
      */
     @GetMapping("/status/{status}")
     public ResponseEntity<List<TicketResponse>> getTicketsByStatus(@PathVariable String status) {
-        List<TicketResponse> tickets = ticketService.getTicketsByStatus(status);
-        return ResponseEntity.ok(tickets);
+        try {
+            Ticket.TicketStatus statusEnum = Ticket.TicketStatus.valueOf(status.toUpperCase());
+            return ResponseEntity.ok(ticketService.getTicketsByStatus(statusEnum));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(List.of());
+        }
     }
 
     /**
@@ -90,8 +97,12 @@ public class TicketController {
      */
     @GetMapping("/priority/{priority}")
     public ResponseEntity<List<TicketResponse>> getTicketsByPriority(@PathVariable String priority) {
-        List<TicketResponse> tickets = ticketService.getTicketsByPriority(priority);
-        return ResponseEntity.ok(tickets);
+        try {
+            Ticket.TicketPriority priorityEnum = Ticket.TicketPriority.valueOf(priority.toUpperCase());
+            return ResponseEntity.ok(ticketService.getTicketsByPriority(priorityEnum));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(List.of());
+        }
     }
 
     /**
@@ -99,7 +110,7 @@ public class TicketController {
      */
     @GetMapping("/assigned/{userId}")
     public ResponseEntity<List<TicketResponse>> getTicketsAssignedTo(@PathVariable String userId) {
-        List<TicketResponse> tickets = ticketService.getTicketsAssignedTo(userId);
+        List<TicketResponse> tickets = ticketService.getTicketsByAssignee(userId);
         return ResponseEntity.ok(tickets);
     }
 
@@ -108,7 +119,9 @@ public class TicketController {
      */
     @GetMapping("/created-by/{userId}")
     public ResponseEntity<List<TicketResponse>> getTicketsCreatedBy(@PathVariable String userId) {
-        List<TicketResponse> tickets = ticketService.getTicketsCreatedBy(userId);
+        List<TicketResponse> tickets = ticketService.getAllTickets().stream()
+                .filter(ticket -> userId.equals(ticket.getReporterId()))
+                .collect(Collectors.toList());
         return ResponseEntity.ok(tickets);
     }
 
@@ -145,13 +158,18 @@ public class TicketController {
     @GetMapping("/dashboard/stats")
     public ResponseEntity<Map<String, Object>> getDashboardStats() {
         List<TicketResponse> allTickets = ticketService.getAllTickets();
-        Map<String, Object> stats = Map.of(
-                "totalTickets", allTickets.size(),
-                "openTickets", ticketService.getOpenTickets().size(),
-                "criticalTickets", ticketService.getTicketsByPriority("CRITICAL").size(),
-                "highTickets", ticketService.getTicketsByPriority("HIGH").size(),
-                "resolvedTickets", ticketService.getTicketsByStatus("RESOLVED").size()
-        );
-        return ResponseEntity.ok(stats);
+        try {
+            Map<String, Object> stats = Map.of(
+                    "totalTickets", allTickets.size(),
+                    "openTickets", ticketService.getOpenTickets().size(),
+                    "criticalTickets", ticketService.getTicketsByPriority(Ticket.TicketPriority.CRITICAL).size(),
+                    "highTickets", ticketService.getTicketsByPriority(Ticket.TicketPriority.HIGH).size(),
+                    "resolvedTickets", ticketService.getTicketsByStatus(Ticket.TicketStatus.RESOLVED).size()
+            );
+            return ResponseEntity.ok(stats);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to load dashboard stats"));
+        }
     }
 }
