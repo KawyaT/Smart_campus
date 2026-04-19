@@ -21,15 +21,16 @@ export default function Sidebar() {
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px', padding: '0 8px' }}>
-        <div style={{
-          width: '32px', height: '32px', background: '#1a56db',
-          borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-        </div>
+        <img
+            src="/favicon.png"
+            alt="SmartCampus"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              objectFit: 'cover',
+            }}
+        />
         <div>
           <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>SmartCampus</div>
           <div style={{ fontSize: '10px', color: '#4b6a9b' }}>Operations Hub</div>
