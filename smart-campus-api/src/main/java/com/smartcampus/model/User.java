@@ -23,4 +23,7 @@ public class User {
     private String password;
     private String name;
     private Role role;
+
+    /** LOCAL = email/password; GOOGLE = signed in with Google (password may be null). */
+    private AuthProvider authProvider;
 }

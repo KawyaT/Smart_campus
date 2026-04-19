@@ -1,5 +1,6 @@
 package com.smartcampus.controller;
 
+import com.smartcampus.model.AuthProvider;
 import com.smartcampus.model.Role;
 import com.smartcampus.model.User;
 import com.smartcampus.security.JwtService;
@@ -7,6 +8,8 @@ import com.smartcampus.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +35,16 @@ public class AuthController {
         try {
             User user = userService.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-            
+
+            if (user.getAuthProvider() == AuthProvider.GOOGLE
+                    || user.getPassword() == null
+                    || user.getPassword().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "message", "This account uses Google sign-in",
+                        "success", false
+                ));
+            }
+
             if (!passwordEncoder.matches(password, user.getPassword())) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "message", "Invalid credentials",
@@ -83,6 +95,7 @@ public class AuthController {
                     .email(email)
                     .password(passwordEncoder.encode(password))
                     .role(Role.USER)
+                    .authProvider(AuthProvider.LOCAL)
                     .build();
             
             User savedUser = userService.createUser(user);
@@ -104,5 +117,31 @@ public class AuthController {
                 "success", false
             ));
         }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> currentUser(Authentication authentication) {
+        // AnonymousAuthenticationToken still reports isAuthenticated() == true in Spring Security.
+        if (authentication == null
+                || authentication instanceof AnonymousAuthenticationToken
+                || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+        String email = authentication.getName();
+        if (email == null || email.isBlank() || "anonymousUser".equalsIgnoreCase(email)) {
+            return ResponseEntity.status(401).build();
+        }
+        return userService.findByEmail(email)
+                .map(user -> {
+                    String provider = user.getAuthProvider() != null ? user.getAuthProvider().name() : "LOCAL";
+                    return ResponseEntity.ok(Map.<String, Object>of(
+                            "id", user.getId(),
+                            "email", user.getEmail(),
+                            "name", user.getName(),
+                            "role", user.getRole().getName(),
+                            "authProvider", provider
+                    ));
+                })
+                .orElseGet(() -> ResponseEntity.status(401).build());
     }
 }

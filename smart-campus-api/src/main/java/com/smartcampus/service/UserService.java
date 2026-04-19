@@ -1,6 +1,7 @@
 package com.smartcampus.service;
 
 import com.smartcampus.exception.UserNotFoundException;
+import com.smartcampus.model.AuthProvider;
 import com.smartcampus.model.Role;
 import com.smartcampus.model.User;
 import com.smartcampus.repository.UserRepository;
@@ -22,7 +23,41 @@ public class UserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("User with email " + user.getEmail() + " already exists");
         }
+        if (user.getAuthProvider() == null) {
+            user.setAuthProvider(AuthProvider.LOCAL);
+        }
         return userRepository.save(user);
+    }
+
+    /**
+     * Called after Google OAuth: create USER without password, or return existing (LOCAL or GOOGLE) by email.
+     */
+    public User upsertGoogleUser(String email, String displayName) {
+        return userRepository.findByEmail(email)
+                .map(existing -> {
+                    if (displayName != null && !displayName.isBlank()
+                            && (existing.getName() == null || existing.getName().isBlank()
+                            || !displayName.equals(existing.getName()))) {
+                        existing.setName(displayName);
+                        return userRepository.save(existing);
+                    }
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    int at = email.indexOf('@');
+                    String fallbackName = at > 0 ? email.substring(0, at) : email;
+                    String name = (displayName != null && !displayName.isBlank())
+                            ? displayName
+                            : fallbackName;
+                    User nu = User.builder()
+                            .email(email)
+                            .name(name)
+                            .password(null)
+                            .role(Role.USER)
+                            .authProvider(AuthProvider.GOOGLE)
+                            .build();
+                    return userRepository.save(nu);
+                });
     }
     
     public Optional<User> findByEmail(String email) {

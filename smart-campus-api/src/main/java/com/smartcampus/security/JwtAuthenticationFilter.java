@@ -39,15 +39,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = authHeader.substring(7);
-        if (!jwtService.isTokenValid(token)) {
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty() || !jwtService.isTokenValid(token)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String email = jwtService.extractEmail(token);
         String roleName = jwtService.extractRoleName(token);
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        // Always apply JWT when Bearer is valid. Do not require getAuthentication()==null — the
+        // anonymous user is a non-null Authentication, which previously blocked JWT and broke /api/auth/me.
+        if (email != null) {
             String authority = "ROLE_" + (roleName != null ? roleName : "USER");
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                     email,

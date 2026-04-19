@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8081/api';
+/**
+ * OAuth / Google redirect must hit the real backend (not under Vite).
+ * API calls in dev use same-origin `/api` so Vite proxies to 8081 (fixes ERR_NETWORK / CORS).
+ */
+export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN ?? 'http://localhost:8081';
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.DEV ? '/api' : `${API_ORIGIN}/api`);
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

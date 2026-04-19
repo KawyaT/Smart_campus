@@ -97,6 +97,38 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
+  /** After Google redirects back with ?token= — same JWT + user shape as password login. */
+  const completeGoogleSignIn = async (token) => {
+    try {
+      setLoading(true);
+      setError(null);
+      localStorage.setItem('token', token);
+      const me = await authAPI.getMe();
+      const u = {
+        id: me.id,
+        email: me.email,
+        name: me.name,
+        role: me.role,
+      };
+      setUser(u);
+      localStorage.setItem('user', JSON.stringify(u));
+      toast.success('Signed in with Google');
+      return { success: true, user: u };
+    } catch (err) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      const msg =
+        (err && typeof err === 'object' && typeof err.message === 'string' && err.message) ||
+        (typeof err === 'string' ? err : null) ||
+        'Google sign-in failed';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -105,6 +137,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     clearError,
+    completeGoogleSignIn,
     isAuthenticated: !!user,
   };
 

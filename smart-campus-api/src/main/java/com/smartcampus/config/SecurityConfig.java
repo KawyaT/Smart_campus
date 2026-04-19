@@ -1,6 +1,9 @@
 package com.smartcampus.config;
 
+import com.smartcampus.security.GoogleOidcUserService;
 import com.smartcampus.security.JwtAuthenticationFilter;
+import com.smartcampus.security.OAuth2LoginFailureHandler;
+import com.smartcampus.security.OAuth2LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +27,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final GoogleOidcUserService googleOidcUserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -48,14 +54,23 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/oauth2/**", "/login/**", "/login/oauth2/**").permitAll()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/api/auth/login", "/api/auth/signup").permitAll()
                     .requestMatchers("/api/health").permitAll()
                     .requestMatchers("/api/users/roles").permitAll()
                     .anyRequest().authenticated()
             )
+            .oauth2Login(oauth2 -> oauth2
+                    .userInfoEndpoint(userInfo -> userInfo.oidcUserService(googleOidcUserService))
+                    .successHandler(oAuth2LoginSuccessHandler)
+                    .failureHandler(oAuth2LoginFailureHandler)
+            )
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

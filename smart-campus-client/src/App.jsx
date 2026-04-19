@@ -5,28 +5,33 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Login from './components/Login';
 import Register from './components/Register';
+import OAuthSuccess from './components/OAuthSuccess';
 import Dashboard from './components/Dashboard';
+import AdminDashboard from './components/AdminDashboard';
+import UserDashboard from './components/UserDashboard';
+import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
 import './App.css';
 
-// Protected Route component
+const homePathForUser = (user) =>
+  user?.role === 'ADMIN' ? '/admin-dashboard' : '/user-dashboard';
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return children;
 };
 
-// Public Route component (redirect to dashboard if authenticated)
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  
+  const { isAuthenticated, user } = useAuth();
+
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={homePathForUser(user)} replace />;
   }
-  
+
   return children;
 };
 
@@ -37,29 +42,51 @@ function App() {
         <div className="app" data-theme="smartuni">
           <ToastContainer position="top-right" autoClose={2500} pauseOnHover theme="light" />
           <Routes>
-            {/* Public routes - redirect to dashboard if already authenticated */}
-            <Route path="/login" element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            } />
-            <Route path="/register" element={
-              <PublicRoute>
-                <Register />
-              </PublicRoute>
-            } />
-            
-            {/* Protected routes - require authentication */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            
-            {/* Default redirect */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
+            <Route path="/oauth-success" element={<OAuthSuccess />} />
+
+            <Route
+              path="/admin-dashboard"
+              element={
+                <AdminDashboardRoute>
+                  <AdminDashboard />
+                </AdminDashboardRoute>
+              }
+            />
+            <Route
+              path="/user-dashboard"
+              element={
+                <UserDashboardRoute>
+                  <UserDashboard />
+                </UserDashboardRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            
-            {/* Catch all route - redirect to dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
