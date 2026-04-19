@@ -51,8 +51,11 @@ const TicketCard = ({ ticket, onClick, onDelete }) => {
         >
           ×
         </button>
-      </div>
-      <p className="ticket-description">{ticket.description.substring(0, 100)}...</p>
+      </div>      {ticket.imageBase64 && (
+        <div className="ticket-card-image" style={{ marginBottom: "10px" }}>
+           <img src={ticket.imageBase64} alt="Thumbnail" style={{ width: "100%", height: "120px", objectFit: "cover", borderRadius: "4px" }} />
+        </div>
+      )}      <p className="ticket-description">{ticket.description.substring(0, 100)}...</p>
       <div className="ticket-meta">
         <span 
           className="badge priority" 
@@ -70,7 +73,7 @@ const TicketCard = ({ ticket, onClick, onDelete }) => {
       </div>
       <div className="ticket-footer">
         <small>{new Date(ticket.createdAt).toLocaleDateString()}</small>
-        {ticket.location && <small>📍 {ticket.location}</small>}
+        {ticket.location && <small>� {ticket.location}</small>}
       </div>
     </div>
   );

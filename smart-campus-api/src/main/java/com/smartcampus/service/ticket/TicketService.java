@@ -40,6 +40,7 @@ public class TicketService {
         ticket.setEstimatedHours(request.getEstimatedHours());
         ticket.setDueDate(request.getDueDate());
         ticket.setTags(request.getTags() != null ? request.getTags() : new ArrayList<>());
+        ticket.setImageBase64(request.getImageBase64() != null ? request.getImageBase64() : request.getAttachmentUrl());
         ticket.setCommentIds(new ArrayList<>());
         ticket.setCommentCount(0);
 
@@ -276,8 +277,7 @@ public class TicketService {
                 .dueDate(ticket.getDueDate())
                 .commentCount(ticket.getCommentCount())
                 .tags(ticket.getTags())
-                .department(ticket.getDepartment())
-                .isOverdue(ticket.isOverdue())
+                .department(ticket.getDepartment())                  .imageBase64(ticket.getImageBase64())                .isOverdue(ticket.isOverdue())
                 .satisfactionRating(ticket.getSatisfactionRating())
                 .build();
     }

@@ -53,6 +53,9 @@ public class Ticket {
     private String department;
     private String facility;
     
+    // Attachments
+    private String imageBase64;
+    
     // Ratings
     private int satisfactionRating;
     private String feedback;

@@ -42,6 +42,7 @@ public class TicketResponse {
     private List<String> tags;
     private String department;
     private String facility;
+    private String imageBase64;
     
     private int satisfactionRating;
     private String feedback;

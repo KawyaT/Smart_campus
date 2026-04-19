@@ -37,4 +37,5 @@ public class CreateTicketRequest {
     
     private List<String> tags;
     private String attachmentUrl;
+    private String imageBase64;
 }

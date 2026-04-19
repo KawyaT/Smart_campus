@@ -10,7 +10,7 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
       priority: 'MEDIUM',
       location: '',
       estimatedDays: 0,
-      attachmentUrl: '',
+      imageBase64: '',
       status: 'OPEN',
       assignedTo: '',
       resolution: '',
@@ -24,6 +24,20 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          imageBase64: reader.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -94,6 +108,25 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
             <option value="CRITICAL">Critical</option>
           </select>
         </div>
+      </div>
+
+      <div className="form-group">
+        <label>Upload Image</label>
+        <input 
+          type="file" 
+          accept="image/*" 
+          onChange={handleImageChange} 
+          style={{ padding: '10px 0' }}
+        />
+        {formData.imageBase64 && (
+          <div style={{ marginTop: '10px' }}>
+            <img 
+              src={formData.imageBase64} 
+              alt="Ticket Attachment" 
+              style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }} 
+            />
+          </div>
+        )}
       </div>
 
       <div className="form-row">
@@ -176,7 +209,7 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
         />
       </div>
 
-      <button type="submit" disabled={isLoading} className="submit-btn">
+      <button type="submit" disabled={isLoading} className="submit-btn" style={{marginTop: '20px'}}>
         {isLoading ? 'Saving...' : 'Submit Ticket'}
       </button>
     </form>
