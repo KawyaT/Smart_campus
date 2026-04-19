@@ -66,21 +66,7 @@ public class BookingService {
         return toResponse(booking);
     }
 
-    public BookingResponse cancelMyBooking(String requesterId, String bookingId) {
-        Booking booking = bookingRepository.findByIdAndRequesterId(bookingId, requesterId)
-            .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
-
-        if (booking.getStatus() != BookingStatus.APPROVED) {
-            throw new InvalidBookingStateException("Only approved bookings can be cancelled");
-        }
-
-        booking.setStatus(BookingStatus.CANCELLED);
-        booking.setCancellationReason("Cancelled by requester");
-        booking.setCancelledAt(LocalDateTime.now());
-        booking.setUpdatedAt(LocalDateTime.now());
-
-        return toResponse(bookingRepository.save(booking));
-    }
+    
 
     private void ensureNoConflict(String resourceId, LocalDate bookingDate, LocalTime startTime, LocalTime endTime) {
         boolean conflictExists = bookingRepository.existsByResourceIdAndBookingDateAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
