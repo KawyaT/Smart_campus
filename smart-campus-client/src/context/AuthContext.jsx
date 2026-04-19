@@ -18,11 +18,15 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Check if user is logged in on app start
+  // Restore session: need both user profile and JWT
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token');
+    if (storedUser && token) {
       setUser(JSON.parse(storedUser));
+    } else if (storedUser || token) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
     setLoading(false);
   }, []);
@@ -37,6 +41,9 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
+        if (response.token) {
+          localStorage.setItem('token', response.token);
+        }
         toast.success('Login successful');
         return { success: true, message: response.message };
       } else {
@@ -80,6 +87,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setError(null);
     toast.info('Logged out');
   };

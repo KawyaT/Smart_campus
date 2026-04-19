@@ -2,6 +2,7 @@ package com.smartcampus.controller;
 
 import com.smartcampus.model.Role;
 import com.smartcampus.model.User;
+import com.smartcampus.security.JwtService;
 import com.smartcampus.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +16,11 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginRequest) {
@@ -39,9 +40,11 @@ public class AuthController {
                 ));
             }
             
+            String token = jwtService.generateToken(user);
             return ResponseEntity.ok(Map.of(
                 "message", "Login successful",
                 "success", true,
+                "token", token,
                 "user", Map.of(
                     "id", user.getId(),
                     "email", user.getEmail(),
