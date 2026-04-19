@@ -1,48 +1,28 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8081/api';
-
-const authApi = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-authApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { apiClient } from './client';
 
 // Auth API functions
 export const authAPI = {
-  // Login user
   login: async (credentials) => {
     try {
-      const response = await authApi.post('/auth/login', credentials);
+      const response = await apiClient.post('/auth/login', credentials);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Login failed' };
     }
   },
 
-  // Register user
   register: async (userData) => {
     try {
-      const response = await authApi.post('/auth/signup', userData);
+      const response = await apiClient.post('/auth/signup', userData);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Registration failed' };
     }
   },
 
-  // Get available roles
   getRoles: async () => {
     try {
-      const response = await authApi.get('/users/roles');
+      const response = await apiClient.get('/users/roles');
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch roles' };

@@ -1,5 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { notificationsAPI } from '../api/notifications';
+import NotificationBell from './NotificationBell';
 
 const IconCalendar = () => (
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -76,17 +78,45 @@ const STATS_BY_ROLE = {
   ],
 };
 
-const SAMPLE_NOTIFY = [
-  { id: 1, text: 'Welcome to Smart Campus Operations Hub.', time: 'Just now', unread: true },
-  { id: 2, text: 'You’ll see booking and ticket updates here when there’s something new.', time: 'Recently', unread: false },
-];
-
 const UserDashboard = () => {
   const { user, logout } = useAuth();
+  const [unreadAlerts, setUnreadAlerts] = useState(null);
+
+  const onUnreadChange = useCallback((n) => {
+    setUnreadAlerts(n);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    function load() {
+      notificationsAPI
+        .unreadCount()
+        .then((d) => {
+          if (!cancelled) setUnreadAlerts(typeof d.count === 'number' ? d.count : 0);
+        })
+        .catch(() => {
+          if (!cancelled) setUnreadAlerts(null);
+        });
+    }
+    load();
+    const id = setInterval(load, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   const role = user?.role || 'USER';
   const quickActions = QUICK_BY_ROLE[role] || QUICK_BY_ROLE.USER;
-  const stats = STATS_BY_ROLE[role] || STATS_BY_ROLE.USER;
+  const statsBase = STATS_BY_ROLE[role] || STATS_BY_ROLE.USER;
+  const stats = useMemo(() => {
+    if (role !== 'USER' && role !== 'TECHNICIAN') return statsBase;
+    return statsBase.map((s) =>
+      s.label === 'Unread alerts' || s.hint === 'Notifications'
+        ? { ...s, value: unreadAlerts === null ? '—' : String(unreadAlerts) }
+        : s
+    );
+  }, [statsBase, role, unreadAlerts]);
 
   const welcomeLine = useMemo(() => {
     if (role === 'TECHNICIAN') return 'Pick up assignments, update ticket status, and keep facilities running smoothly.';
@@ -104,6 +134,7 @@ const UserDashboard = () => {
           </div>
         </div>
         <div className="dash-topbar-actions">
+          <NotificationBell onUnreadChange={onUnreadChange} />
           <div className="dash-user" title={user?.email}>
             <span className="dash-avatar" aria-hidden>
               {initials(user?.name || user?.email || 'U')}
@@ -194,25 +225,6 @@ const UserDashboard = () => {
             </div>
           </section>
         </div>
-
-        <section className="dash-section dash-panel" aria-labelledby="notify-heading">
-          <div className="dash-panel-head">
-            <h2 id="notify-heading" className="dash-panel-title">
-              Notifications
-            </h2>
-          </div>
-          <div className="dash-notify-list">
-            {SAMPLE_NOTIFY.map((n) => (
-              <div key={n.id} className={`dash-notify ${n.unread ? 'dash-notify--unread' : ''}`}>
-                {n.unread && <span className="dash-notify-dot" aria-hidden />}
-                <div>
-                  {n.text}
-                  <time>{n.time}</time>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
 
         <p className="dash-footnote">
           Smart Campus — your hub for facilities, bookings, and maintenance.
