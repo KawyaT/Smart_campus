@@ -50,7 +50,13 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getMyBookings(requesterId, status));
     }
 
-   
+    @GetMapping("/my/{bookingId}")
+    public ResponseEntity<BookingResponse> getMyBookingById(
+        @RequestHeader("X-User-Id") @NotBlank String requesterId,
+        @PathVariable String bookingId
+    ) {
+        return ResponseEntity.ok(bookingService.getMyBookingById(requesterId, bookingId));
+    }
 
     @PatchMapping("/my/{bookingId}/cancel")
     public ResponseEntity<BookingResponse> cancelMyBooking(
