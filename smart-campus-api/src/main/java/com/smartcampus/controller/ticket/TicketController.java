@@ -1,7 +1,11 @@
 package com.smartcampus.controller.ticket;
 
+import com.smartcampus.dto.request.AddTicketCommentRequest;
+import com.smartcampus.dto.request.AddTicketEventRequest;
 import com.smartcampus.dto.request.CreateTicketRequest;
 import com.smartcampus.dto.request.UpdateTicketRequest;
+import com.smartcampus.dto.responce.TicketAnalyticsResponse;
+import com.smartcampus.dto.responce.TicketCommentDTO;
 import com.smartcampus.dto.responce.TicketDetailResponse;
 import com.smartcampus.dto.responce.TicketResponse;
 import com.smartcampus.model.ticket.Ticket;
@@ -135,6 +139,23 @@ public class TicketController {
     }
 
     /**
+     * Get tickets by department
+     */
+    @GetMapping("/department/{department}")
+    public ResponseEntity<List<TicketResponse>> getTicketsByDepartment(@PathVariable String department) {
+        List<TicketResponse> tickets = ticketService.getTicketsByDepartment(department);
+        return ResponseEntity.ok(tickets);
+    }
+
+    /**
+     * Get tickets by assignee (client compatibility alias)
+     */
+    @GetMapping("/assignee/{userId}")
+    public ResponseEntity<List<TicketResponse>> getTicketsByAssigneeAlias(@PathVariable String userId) {
+        return getTicketsAssignedTo(userId);
+    }
+
+    /**
      * Search tickets by keyword
      */
     @GetMapping("/search")
@@ -150,6 +171,80 @@ public class TicketController {
     public ResponseEntity<List<TicketResponse>> getOpenTickets() {
         List<TicketResponse> tickets = ticketService.getOpenTickets();
         return ResponseEntity.ok(tickets);
+    }
+
+    /**
+     * Get overdue tickets
+     */
+    @GetMapping("/overdue")
+    public ResponseEntity<List<TicketResponse>> getOverdueTickets() {
+        List<TicketResponse> tickets = ticketService.getOverdueTickets();
+        return ResponseEntity.ok(tickets);
+    }
+
+    /**
+     * Get analytics
+     */
+    @GetMapping("/analytics")
+    public ResponseEntity<TicketAnalyticsResponse> getAnalytics() {
+        return ResponseEntity.ok(ticketService.getAnalytics());
+    }
+
+    /**
+     * Get comments for a ticket
+     */
+    @GetMapping("/{ticketId}/comments")
+    public ResponseEntity<List<TicketCommentDTO>> getComments(@PathVariable String ticketId) {
+        return ResponseEntity.ok(ticketService.getTicketComments(ticketId));
+    }
+
+    /**
+     * Add comment to ticket
+     */
+    @PostMapping("/{ticketId}/comments")
+    public ResponseEntity<TicketCommentDTO> addComment(@PathVariable String ticketId,
+                                                       @Valid @RequestBody AddTicketCommentRequest request) {
+        String userId = "user-123";
+        String authorName = (request.getAuthorName() != null && !request.getAuthorName().isBlank())
+                ? request.getAuthorName()
+                : "Current User";
+        TicketCommentDTO response = ticketService.addComment(
+                ticketId,
+                userId,
+                authorName,
+                request.getContent(),
+                request.isInternal()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Get ticket events (status/assignment/internal notes)
+     */
+    @GetMapping("/{ticketId}/events")
+    public ResponseEntity<List<TicketCommentDTO>> getEvents(@PathVariable String ticketId) {
+        return ResponseEntity.ok(ticketService.getTicketEvents(ticketId));
+    }
+
+    /**
+     * Add event to ticket
+     */
+    @PostMapping("/{ticketId}/events")
+    public ResponseEntity<TicketCommentDTO> addEvent(@PathVariable String ticketId,
+                                                     @Valid @RequestBody AddTicketEventRequest request) {
+        String userId = "user-123";
+        String authorName = (request.getAuthorName() != null && !request.getAuthorName().isBlank())
+                ? request.getAuthorName()
+                : "System";
+        TicketCommentDTO response = ticketService.addEvent(
+                ticketId,
+                userId,
+                authorName,
+                request.getContent(),
+                request.getType() != null ? request.getType() : "NOTE",
+                request.isInternal()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**

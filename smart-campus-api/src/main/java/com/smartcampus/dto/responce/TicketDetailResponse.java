@@ -47,6 +47,7 @@ public class TicketDetailResponse {
     private int satisfactionRating;
     private String feedback;
     private String imageBase64;
+    private List<String> imageGalleryBase64;
     
     private boolean isOverdue;
     
@@ -76,6 +77,7 @@ public class TicketDetailResponse {
                 .department(ticket.getDepartment())
                 .facility(ticket.getFacility())
                 .imageBase64(ticket.getImageBase64())
+                .imageGalleryBase64(ticket.getImageGalleryBase64())
                 .satisfactionRating(ticket.getSatisfactionRating())
                 .feedback(ticket.getFeedback())
                 .isOverdue(ticket.isOverdue())

@@ -55,6 +55,7 @@ public class Ticket {
     
     // Attachments
     private String imageBase64;
+    private List<String> imageGalleryBase64;
     
     // Ratings
     private int satisfactionRating;
@@ -68,6 +69,7 @@ public class Ticket {
         this.status = TicketStatus.OPEN;
         this.commentIds = new ArrayList<>();
         this.tags = new ArrayList<>();
+        this.imageGalleryBase64 = new ArrayList<>();
     }
 
     public Ticket(String title, String description, String category, TicketPriority priority) {

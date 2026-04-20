@@ -43,6 +43,7 @@ public class TicketResponse {
     private String department;
     private String facility;
     private String imageBase64;
+    private List<String> imageGalleryBase64;
     
     private int satisfactionRating;
     private String feedback;

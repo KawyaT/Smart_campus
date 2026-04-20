@@ -41,6 +41,7 @@ public class TicketService {
         ticket.setDueDate(request.getDueDate());
         ticket.setTags(request.getTags() != null ? request.getTags() : new ArrayList<>());
         ticket.setImageBase64(request.getImageBase64() != null ? request.getImageBase64() : request.getAttachmentUrl());
+        ticket.setImageGalleryBase64(request.getImageGalleryBase64() != null ? request.getImageGalleryBase64() : new ArrayList<>());
         ticket.setCommentIds(new ArrayList<>());
         ticket.setCommentCount(0);
 
@@ -76,6 +77,9 @@ public class TicketService {
         }
 
         Ticket ticket = ticketOpt.get();
+        Ticket.TicketStatus previousStatus = ticket.getStatus();
+        String previousAssigneeId = ticket.getAssignedToId();
+        String previousAssigneeName = ticket.getAssignedToName();
         
         if (request.getTitle() != null) ticket.setTitle(request.getTitle());
         if (request.getDescription() != null) ticket.setDescription(request.getDescription());
@@ -84,6 +88,7 @@ public class TicketService {
         if (request.getSeverity() != null) ticket.setSeverity(Ticket.TicketSeverity.valueOf(request.getSeverity().toUpperCase()));
         if (request.getStatus() != null) ticket.setStatus(Ticket.TicketStatus.valueOf(request.getStatus().toUpperCase()));
         if (request.getAssignedToId() != null) ticket.setAssignedToId(request.getAssignedToId());
+        if (request.getAssignedToName() != null) ticket.setAssignedToName(request.getAssignedToName());
         if (request.getLocation() != null) ticket.setLocation(request.getLocation());
         if (request.getFacility() != null) ticket.setFacility(request.getFacility());
         if (request.getDepartment() != null) ticket.setDepartment(request.getDepartment());
@@ -91,6 +96,8 @@ public class TicketService {
         if (request.getResolutionNotes() != null) ticket.setResolutionNotes(request.getResolutionNotes());
         if (request.getActualHours() > 0) ticket.setActualHours(request.getActualHours());
         if (request.getTags() != null) ticket.setTags(request.getTags());
+        if (request.getImageBase64() != null) ticket.setImageBase64(request.getImageBase64());
+        if (request.getImageGalleryBase64() != null) ticket.setImageGalleryBase64(request.getImageGalleryBase64());
         
         if (request.getSatisfactionRating() > 0) {
             ticket.setSatisfactionRating(request.getSatisfactionRating());
@@ -106,6 +113,31 @@ public class TicketService {
         
         ticket.setUpdatedAt(LocalDateTime.now());
         Ticket updatedTicket = ticketRepository.save(ticket);
+
+        if (request.getStatus() != null && previousStatus != updatedTicket.getStatus()) {
+            addEvent(
+                    id,
+                    "system",
+                    "System",
+                    "Status changed from " + previousStatus + " to " + updatedTicket.getStatus(),
+                    TicketComment.CommentType.STATUS_CHANGE.toString(),
+                    false
+            );
+        }
+
+        if (request.getAssignedToId() != null && !Objects.equals(previousAssigneeId, updatedTicket.getAssignedToId())) {
+            String oldAssignee = previousAssigneeName != null ? previousAssigneeName : "Unassigned";
+            String newAssignee = updatedTicket.getAssignedToName() != null ? updatedTicket.getAssignedToName() : updatedTicket.getAssignedToId();
+            addEvent(
+                    id,
+                    "system",
+                    "System",
+                    "Assignment changed from " + oldAssignee + " to " + (newAssignee != null ? newAssignee : "Unassigned"),
+                    TicketComment.CommentType.ASSIGNMENT_CHANGE.toString(),
+                    true
+            );
+        }
+
         return convertToResponse(updatedTicket);
     }
 
@@ -194,6 +226,40 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
+    public List<TicketCommentDTO> getTicketEvents(String ticketId) {
+        return commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
+                .filter(comment -> comment.getType() != TicketComment.CommentType.COMMENT)
+                .map(this::convertCommentToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public TicketCommentDTO addEvent(String ticketId, String authorId, String authorName, String content, String type, boolean isInternal) {
+        Optional<Ticket> ticketOpt = ticketRepository.findById(ticketId);
+        if (ticketOpt.isEmpty()) {
+            throw new RuntimeException("Ticket not found");
+        }
+
+        TicketComment.CommentType eventType;
+        try {
+            eventType = TicketComment.CommentType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            eventType = TicketComment.CommentType.NOTE;
+        }
+
+        TicketComment event = new TicketComment();
+        event.setTicketId(ticketId);
+        event.setAuthorId(authorId);
+        event.setAuthorName(authorName);
+        event.setContent(content);
+        event.setInternal(isInternal);
+        event.setType(eventType);
+        event.setCreatedAt(LocalDateTime.now());
+        event.setUpdatedAt(LocalDateTime.now());
+
+        TicketComment savedEvent = commentRepository.save(event);
+        return convertCommentToDTO(savedEvent);
+    }
+
     public TicketAnalyticsResponse getAnalytics() {
         List<Ticket> allTickets = ticketRepository.findAll();
         
@@ -269,15 +335,26 @@ public class TicketService {
                 .status(ticket.getStatus() != null ? ticket.getStatus().toString() : "")
                 .priority(ticket.getPriority() != null ? ticket.getPriority().toString() : "")
                 .severity(ticket.getSeverity() != null ? ticket.getSeverity().toString() : "")
+            .reporterId(ticket.getReporterId())
                 .reporterName(ticket.getReporterName())
+            .assignedToId(ticket.getAssignedToId())
                 .assignedToName(ticket.getAssignedToName())
                 .createdAt(ticket.getCreatedAt())
                 .updatedAt(ticket.getUpdatedAt())
                 .resolvedAt(ticket.getResolvedAt())
                 .dueDate(ticket.getDueDate())
+            .estimatedHours(ticket.getEstimatedHours())
+            .actualHours(ticket.getActualHours())
+            .resolutionNotes(ticket.getResolutionNotes())
+            .commentIds(ticket.getCommentIds())
                 .commentCount(ticket.getCommentCount())
                 .tags(ticket.getTags())
-                .department(ticket.getDepartment())                  .imageBase64(ticket.getImageBase64())                .isOverdue(ticket.isOverdue())
+            .department(ticket.getDepartment())
+            .facility(ticket.getFacility())
+            .imageBase64(ticket.getImageBase64())
+            .imageGalleryBase64(ticket.getImageGalleryBase64())
+            .feedback(ticket.getFeedback())
+            .isOverdue(ticket.isOverdue())
                 .satisfactionRating(ticket.getSatisfactionRating())
                 .build();
     }

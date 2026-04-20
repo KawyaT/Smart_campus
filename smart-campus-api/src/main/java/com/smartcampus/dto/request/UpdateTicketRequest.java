@@ -20,6 +20,7 @@ public class UpdateTicketRequest {
     private String severity;
     private String status;
     private String assignedToId;
+    private String assignedToName;
     private String location;
     private String facility;
     private String department;
@@ -29,6 +30,8 @@ public class UpdateTicketRequest {
     private LocalDateTime dueDate;
     
     private List<String> tags;
+    private String imageBase64;
+    private List<String> imageGalleryBase64;
     private int satisfactionRating;
     private String feedback;
 }
