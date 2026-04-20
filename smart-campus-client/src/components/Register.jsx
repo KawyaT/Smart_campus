@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_ORIGIN } from '../api/client';
+import './AuthPages.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({

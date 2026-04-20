@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     private final GoogleOidcUserService googleOidcUserService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final OAuth2AuthorizationRequestResolver oauth2AuthorizationRequestResolver;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -65,6 +67,8 @@ public class SecurityConfig {
                     .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
+                    .authorizationEndpoint(authorization -> authorization
+                            .authorizationRequestResolver(oauth2AuthorizationRequestResolver))
                     .userInfoEndpoint(userInfo -> userInfo.oidcUserService(googleOidcUserService))
                     .successHandler(oAuth2LoginSuccessHandler)
                     .failureHandler(oAuth2LoginFailureHandler)

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { normalizeJwtFromUrl, parseOAuthTokenFromWindow } from '../utils/oauthToken';
+import './AuthPages.css';
 
 /** Backend redirects here: /oauth-success?token=... (see OAuth2LoginSuccessHandler). */
 const OAuthSuccess = () => {

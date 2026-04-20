@@ -10,7 +10,6 @@ import Dashboard from './components/Dashboard';
 import AdminDashboard from './components/AdminDashboard';
 import UserDashboard from './components/UserDashboard';
 import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
-import './App.css';
 
 const homePathForUser = (user) =>
   user?.role === 'ADMIN' ? '/admin-dashboard' : '/user-dashboard';

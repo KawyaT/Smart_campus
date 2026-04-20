@@ -97,6 +97,45 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
+  const updateProfile = async ({ name }) => {
+    try {
+      setError(null);
+      const me = await authAPI.updateProfile({ name });
+      const u = {
+        id: me.id,
+        email: me.email,
+        name: me.name,
+        role: me.role,
+      };
+      setUser(u);
+      localStorage.setItem('user', JSON.stringify(u));
+      toast.success('Profile updated');
+      return { success: true };
+    } catch (err) {
+      const msg = err?.message || 'Could not update profile';
+      setError(msg);
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      setError(null);
+      await authAPI.deleteAccount();
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      toast.success('Your account has been deleted');
+      return { success: true };
+    } catch (err) {
+      const msg = err?.message || 'Could not delete account';
+      setError(msg);
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
   /** After Google redirects back with ?token= — same JWT + user shape as password login. */
   const completeGoogleSignIn = async (token) => {
     try {
@@ -138,6 +177,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     clearError,
     completeGoogleSignIn,
+    updateProfile,
+    deleteAccount,
     isAuthenticated: !!user,
   };
 

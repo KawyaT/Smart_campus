@@ -29,6 +29,37 @@ export const authAPI = {
     }
   },
 
+  /** Update display name (Bearer). */
+  updateProfile: async ({ name }) => {
+    try {
+      const { data } = await apiClient.patch('/auth/profile', { name });
+      return data;
+    } catch (error) {
+      const d = error.response?.data;
+      const msg =
+        (typeof d === 'object' && d && d.message) ||
+        (typeof d === 'string' ? d : null) ||
+        error.message ||
+        'Could not update profile';
+      throw { message: msg, status: error.response?.status };
+    }
+  },
+
+  /** Permanently delete own account (Bearer). */
+  deleteAccount: async () => {
+    try {
+      await apiClient.delete('/auth/account');
+    } catch (error) {
+      const d = error.response?.data;
+      const msg =
+        (typeof d === 'object' && d && d.message) ||
+        (typeof d === 'string' ? d : null) ||
+        error.message ||
+        'Could not delete account';
+      throw { message: msg, status: error.response?.status };
+    }
+  },
+
   /** Current user (requires Bearer token). Used after Google OAuth redirect. */
   getMe: async () => {
     try {

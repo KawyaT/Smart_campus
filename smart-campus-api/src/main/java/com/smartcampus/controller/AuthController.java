@@ -11,7 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -143,5 +149,48 @@ public class AuthController {
                     ));
                 })
                 .orElseGet(() -> ResponseEntity.status(401).build());
+    }
+
+    @PatchMapping("/profile")
+    public ResponseEntity<?> updateProfile(
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+        if (!isAuthenticatedUser(authentication)) {
+            return ResponseEntity.status(401).build();
+        }
+        String email = authentication.getName();
+        String name = body != null ? body.get("name") : null;
+        try {
+            User updated = userService.updateNameForEmail(email, name);
+            String provider = updated.getAuthProvider() != null ? updated.getAuthProvider().name() : "LOCAL";
+            return ResponseEntity.ok(Map.<String, Object>of(
+                    "id", updated.getId(),
+                    "email", updated.getEmail(),
+                    "name", updated.getName(),
+                    "role", updated.getRole().getName(),
+                    "authProvider", provider
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/account")
+    public ResponseEntity<Void> deleteAccount(Authentication authentication) {
+        if (!isAuthenticatedUser(authentication)) {
+            return ResponseEntity.status(401).build();
+        }
+        userService.deleteAccountByEmail(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    private static boolean isAuthenticatedUser(Authentication authentication) {
+        if (authentication == null
+                || authentication instanceof AnonymousAuthenticationToken
+                || !authentication.isAuthenticated()) {
+            return false;
+        }
+        String email = authentication.getName();
+        return email != null && !email.isBlank() && !"anonymousUser".equalsIgnoreCase(email);
     }
 }

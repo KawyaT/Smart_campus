@@ -44,25 +44,16 @@ public class UserController {
     }
     
     @PutMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> updateUserRole(
             @PathVariable String id,
             @RequestBody Map<String, String> request) {
-        
-        System.out.println("DEBUG: PUT endpoint reached!");
-        System.out.println("DEBUG: Request body: " + request);
         String roleString = request.get("role");
-        System.out.println("DEBUG: Role string from request: " + roleString);
-        
         try {
             Role newRole = Role.fromString(roleString);
-            System.out.println("DEBUG: Parsed Role enum: " + newRole);
-            
             User updatedUser = userService.updateUserRole(id, newRole);
-            System.out.println("DEBUG: Updated user role: " + updatedUser.getRole());
-            
             return ResponseEntity.ok("Role updated to: " + updatedUser.getRole());
         } catch (Exception e) {
-            System.out.println("DEBUG: Error: " + e.getMessage());
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }

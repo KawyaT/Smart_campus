@@ -95,4 +95,21 @@ public class UserService {
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
+
+    public User updateNameForEmail(String email, String newName) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        if (newName == null || newName.isBlank()) {
+            throw new IllegalArgumentException("Name is required");
+        }
+        user.setName(newName.trim());
+        return userRepository.save(user);
+    }
+
+    public void deleteAccountByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        userRepository.deleteById(user.getId());
+        log.info("User deleted own account: {}", email);
+    }
 }

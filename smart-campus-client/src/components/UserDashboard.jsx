@@ -1,8 +1,12 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../api/auth';
 import { notificationsAPI } from '../api/notifications';
 import logo from '../assets/logo.png';
 import NotificationBell from './NotificationBell';
+import './DashboardShell.css';
+import './UserDashboard.css';
 
 const IconCalendar = () => (
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -80,8 +84,34 @@ const STATS_BY_ROLE = {
 };
 
 const UserDashboard = () => {
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout, updateProfile, deleteAccount } = useAuth();
   const [unreadAlerts, setUnreadAlerts] = useState(null);
+  const [nameEdit, setNameEdit] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [authProvider, setAuthProvider] = useState(null);
+  const [deletePanelOpen, setDeletePanelOpen] = useState(false);
+  const [deleteEmailInput, setDeleteEmailInput] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  useEffect(() => {
+    setNameEdit(user?.name || '');
+  }, [user?.name, user?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    authAPI
+      .getMe()
+      .then((me) => {
+        if (!cancelled) setAuthProvider(me.authProvider || 'LOCAL');
+      })
+      .catch(() => {
+        if (!cancelled) setAuthProvider(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const onUnreadChange = useCallback((n) => {
     setUnreadAlerts(n);
@@ -124,8 +154,38 @@ const UserDashboard = () => {
     return 'Book resources, report issues, and stay on top of campus updates.';
   }, [role]);
 
+  const nameDirty = nameEdit.trim() !== (user?.name || '').trim();
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!nameDirty || savingProfile) return;
+    setSavingProfile(true);
+    try {
+      await updateProfile({ name: nameEdit.trim() });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const deleteEmailMatches = deleteEmailInput.trim() === (user?.email || '');
+
+  const handleDeleteAccount = async () => {
+    if (!deleteEmailMatches || deletingAccount) return;
+    setDeletingAccount(true);
+    try {
+      const result = await deleteAccount();
+      if (result.success) {
+        navigate('/login', { replace: true });
+      }
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  const signInLabel = authProvider === 'GOOGLE' ? 'Google' : 'Email & password';
+
   return (
-    <div className="dash">
+    <div className="dash dash--user">
       <header className="dash-topbar">
         <div className="dash-brand">
           <img src={logo} alt="SmartUNI" className="dash-brand-logo" />
@@ -172,30 +232,107 @@ const UserDashboard = () => {
         </section>
 
         <div className="dash-grid">
-          <section className="dash-panel" aria-labelledby="profile-heading">
+          <section className="dash-panel user-profile-panel" aria-labelledby="profile-heading">
             <div className="dash-panel-head">
               <h2 id="profile-heading" className="dash-panel-title">
                 Your profile
               </h2>
             </div>
-            <dl className="dash-dl">
-              <div className="dash-dl-row">
-                <dt>Name</dt>
-                <dd>{user?.name || '—'}</dd>
+            <p className="user-profile-hint">
+              Update how your name appears on SmartUNI. Email and role cannot be changed here. You signed in with{' '}
+              <strong>{signInLabel}</strong>.
+            </p>
+            <form className="user-profile-form" onSubmit={handleSaveProfile}>
+              <div className="user-form-field">
+                <label htmlFor="profile-name">Display name</label>
+                <input
+                  id="profile-name"
+                  type="text"
+                  className="user-form-input"
+                  value={nameEdit}
+                  onChange={(ev) => setNameEdit(ev.target.value)}
+                  autoComplete="name"
+                  maxLength={120}
+                  placeholder="Your name"
+                />
               </div>
-              <div className="dash-dl-row">
-                <dt>Email</dt>
-                <dd>{user?.email || '—'}</dd>
+              <div className="user-form-field user-form-field--readonly">
+                <span className="user-form-label">Email</span>
+                <span className="user-form-readonly">{user?.email || '—'}</span>
               </div>
-              <div className="dash-dl-row">
-                <dt>Role</dt>
-                <dd>{role}</dd>
+              <div className="user-form-field user-form-field--readonly">
+                <span className="user-form-label">Role</span>
+                <span className="user-form-readonly">{role}</span>
               </div>
-              <div className="dash-dl-row">
-                <dt>User ID</dt>
-                <dd>{user?.id || '—'}</dd>
+              <div className="user-form-field user-form-field--readonly">
+                <span className="user-form-label">User ID</span>
+                <span className="user-form-readonly user-form-mono">{user?.id || '—'}</span>
               </div>
-            </dl>
+              <div className="user-form-actions">
+                <button
+                  type="submit"
+                  className="user-btn-primary"
+                  disabled={!nameDirty || savingProfile}
+                >
+                  {savingProfile ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </form>
+
+            <div className="user-danger-zone">
+              <h3 className="user-danger-title">Delete account</h3>
+              <p className="user-danger-text">
+                Permanently delete your SmartUNI account and profile data. This cannot be undone.
+              </p>
+              {!deletePanelOpen ? (
+                <button
+                  type="button"
+                  className="user-btn-danger-outline"
+                  onClick={() => {
+                    setDeletePanelOpen(true);
+                    setDeleteEmailInput('');
+                  }}
+                >
+                  Delete my account…
+                </button>
+              ) : (
+                <div className="user-delete-panel">
+                  <p className="user-delete-warning">
+                    Type your email address below to confirm. You will be signed out immediately.
+                  </p>
+                  <input
+                    type="email"
+                    className="user-form-input user-delete-email-input"
+                    value={deleteEmailInput}
+                    onChange={(ev) => setDeleteEmailInput(ev.target.value)}
+                    placeholder={user?.email || 'your@email.com'}
+                    autoComplete="off"
+                    aria-label="Confirm email to delete account"
+                  />
+                  <div className="user-delete-actions">
+                    <button
+                      type="button"
+                      className="user-btn-ghost"
+                      onClick={() => {
+                        setDeletePanelOpen(false);
+                        setDeleteEmailInput('');
+                      }}
+                      disabled={deletingAccount}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="user-btn-danger"
+                      onClick={handleDeleteAccount}
+                      disabled={!deleteEmailMatches || deletingAccount}
+                    >
+                      {deletingAccount ? 'Deleting…' : 'Permanently delete account'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="dash-panel" aria-labelledby="actions-heading">

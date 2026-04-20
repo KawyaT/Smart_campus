@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usersAPI } from '../api/users';
 import logo from '../assets/logo.png';
+import AdminUserManagementPanel from './AdminUserManagementPanel';
+import './DashboardShell.css';
+import './AdminDashboard.css';
+
+const IconOverview = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+  </svg>
+);
 
 const IconUsers = () => (
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -54,81 +64,121 @@ function formatToday() {
   }).format(new Date());
 }
 
-const ADMIN_STATS = [
-  { label: 'Pending booking approvals', value: '—', hint: 'Needs your decision' },
-  { label: 'Open incident tickets', value: '—', hint: 'Across campus' },
-  { label: 'Registered users', value: '—', hint: 'All accounts' },
-  { label: 'Catalogue resources', value: '—', hint: 'Rooms & equipment' },
+const SIDEBAR_NAV = [
+  { id: 'overview', label: 'Overview', sub: 'Summary & queue', Icon: IconOverview },
+  { id: 'users', label: 'User management', sub: 'Accounts & roles', Icon: IconUsers },
+  { id: 'bookings', label: 'Booking approvals', sub: 'Requests', Icon: IconCalendar },
+  { id: 'incidents', label: 'Incident command', sub: 'Tickets', Icon: IconTicket },
+  { id: 'facilities', label: 'Facilities', sub: 'Resources', Icon: IconBuilding },
+  { id: 'reports', label: 'Reports', sub: 'Insights', Icon: IconChart },
+  { id: 'security', label: 'Security & audit', sub: 'Logs', Icon: IconShield },
 ];
 
-const ADMIN_SHORTCUTS = [
-  { title: 'User management', desc: 'Review accounts and assign roles', Icon: IconUsers },
-  { title: 'Booking approvals', desc: 'Approve or reject requests', Icon: IconCalendar },
-  { title: 'Incident command', desc: 'Tickets, priorities, assignments', Icon: IconTicket },
-  { title: 'Facilities catalogue', desc: 'Resources and availability', Icon: IconBuilding },
-  { title: 'Reports & insights', desc: 'Usage and operations', Icon: IconChart },
-  { title: 'Security & audit', desc: 'Policies and activity logs', Icon: IconShield },
-];
+const AdminPlaceholder = ({ title, body }) => (
+  <div className="admin-page">
+    <header className="admin-page-head">
+      <h1 className="admin-page-title">{title}</h1>
+      <p className="admin-page-lead">{body}</p>
+    </header>
+    <div className="admin-placeholder-card">
+      <p>This area will connect to backend features as they are added.</p>
+    </div>
+  </div>
+);
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
+  const [activeNav, setActiveNav] = useState('overview');
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState(null);
 
-  return (
-    <div className="dash dash--admin">
-      <header className="dash-topbar">
-        <div className="dash-brand">
-          <img src={logo} alt="SmartUNI" className="dash-brand-logo" />
-        </div>
-        <div className="dash-topbar-actions">
-          <div className="dash-user" title={user?.email}>
-            <span className="dash-avatar dash-avatar--admin" aria-hidden>
-              {initials(user?.name || user?.email || 'A')}
-            </span>
-            <div className="dash-user-meta">
-              <span className="dash-user-name">{user?.name || 'Admin'}</span>
-              <span className="dash-role">ADMIN</span>
-            </div>
-          </div>
-          <button type="button" className="dash-btn-logout" onClick={logout}>
-            Log out
-          </button>
-        </div>
-      </header>
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const data = await usersAPI.getAll();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      const msg =
+        e.response?.status === 403
+          ? 'You do not have permission to load users.'
+          : e.response?.data?.message || e.message || 'Could not load users.';
+      setUsersError(msg);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
 
-      <main className="dash-main">
-        <section className="dash-hero dash-hero--admin" aria-labelledby="admin-welcome-heading">
-          <div className="dash-hero-admin-row">
-            <div>
-              <h1 id="admin-welcome-heading">Administration</h1>
-              <p>
-                Oversee campus operations—bookings, incidents, accounts, and resources—from one place.
-              </p>
-              <div className="dash-hero-meta">
-                <span className="dash-pill">
-                  <span>Today</span> <strong>{formatToday()}</strong>
-                </span>
-                <span className="dash-pill dash-pill--admin">
-                  <span className="admin-pill-icon" aria-hidden>
-                    <IconShield />
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const registeredCount = users.length;
+
+  const overviewStats = [
+    { label: 'Pending booking approvals', value: '—', hint: 'Needs your decision' },
+    { label: 'Open incident tickets', value: '—', hint: 'Across campus' },
+    {
+      label: 'Registered users',
+      value:
+        usersError != null
+          ? '—'
+          : usersLoading && users.length === 0
+            ? '…'
+            : String(registeredCount),
+      hint: 'All accounts',
+    },
+    { label: 'Catalogue resources', value: '—', hint: 'Rooms & equipment' },
+  ];
+
+  const renderMain = () => {
+    if (activeNav === 'users') {
+      return (
+        <AdminUserManagementPanel
+          users={users}
+          loading={usersLoading}
+          error={usersError}
+          onRefresh={loadUsers}
+          currentUserId={user?.id}
+        />
+      );
+    }
+    if (activeNav === 'overview') {
+      return (
+        <>
+          <section className="dash-hero dash-hero--admin" aria-labelledby="admin-welcome-heading">
+            <div className="dash-hero-admin-row">
+              <div>
+                <h1 id="admin-welcome-heading">Admin Dashboard</h1>
+                <p>
+                  Oversee campus operations—bookings, incidents, accounts, and resources—from one place.
+                </p>
+                <div className="dash-hero-meta">
+                  <span className="dash-pill">
+                    <span>Today</span> <strong>{formatToday()}</strong>
                   </span>
-                  <span>Full access</span>
-                </span>
+                  <span className="dash-pill dash-pill--admin">
+                    <span className="admin-pill-icon" aria-hidden>
+                      <IconShield />
+                    </span>
+                    <span>Full access</span>
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="dash-stats admin-stats" aria-label="Campus overview">
-          {ADMIN_STATS.map((s) => (
-            <article key={s.label} className="dash-stat dash-stat--admin">
-              <div className="dash-stat-label">{s.label}</div>
-              <div className="dash-stat-value">{s.value}</div>
-              <div className="dash-stat-hint">{s.hint}</div>
-            </article>
-          ))}
-        </section>
+          <section className="dash-stats admin-stats" aria-label="Campus overview">
+            {overviewStats.map((s) => (
+              <article key={s.label} className="dash-stat dash-stat--admin">
+                <div className="dash-stat-label">{s.label}</div>
+                <div className="dash-stat-value">{s.value}</div>
+                <div className="dash-stat-hint">{s.hint}</div>
+              </article>
+            ))}
+          </section>
 
-        <div className="admin-layout">
           <section className="dash-panel admin-panel-queue" aria-labelledby="queue-heading">
             <div className="dash-panel-head">
               <h2 id="queue-heading" className="dash-panel-title">
@@ -166,61 +216,73 @@ const AdminDashboard = () => {
             </div>
           </section>
 
-          <section className="dash-panel admin-panel-shortcuts" aria-labelledby="admin-shortcuts-heading">
-            <div className="dash-panel-head">
-              <h2 id="admin-shortcuts-heading" className="dash-panel-title">
-                Management shortcuts
-              </h2>
+          <p className="dash-footnote">
+            Everyone uses the same sign-in page. This administrator view is shown only to accounts with the Admin
+            role.
+          </p>
+        </>
+      );
+    }
+
+    const nav = SIDEBAR_NAV.find((n) => n.id === activeNav);
+    return (
+      <AdminPlaceholder
+        title={nav?.label || 'Section'}
+        body="We’ll add tools here in a future update. Use Overview or User management for now."
+      />
+    );
+  };
+
+  return (
+    <div className="dash dash--admin admin-shell">
+      <header className="dash-topbar">
+        <div className="dash-brand">
+          <img src={logo} alt="SmartUNI" className="dash-brand-logo" />
+        </div>
+        <div className="dash-topbar-actions">
+          <div className="dash-user" title={user?.email}>
+            <span className="dash-avatar dash-avatar--admin" aria-hidden>
+              {initials(user?.name || user?.email || 'A')}
+            </span>
+            <div className="dash-user-meta">
+              <span className="dash-user-name">{user?.name || 'Admin'}</span>
+              <span className="dash-role">ADMIN</span>
             </div>
-            <div className="admin-shortcut-grid">
-              {ADMIN_SHORTCUTS.map((item) => {
-                const ActionIcon = item.Icon;
-                return (
-                  <button key={item.title} type="button" className="dash-action admin-shortcut-btn">
-                    <span className="dash-action-icon admin-shortcut-icon">
-                      <ActionIcon />
+          </div>
+          <button type="button" className="dash-btn-logout" onClick={logout}>
+            Log out
+          </button>
+        </div>
+      </header>
+
+      <div className="admin-shell-body">
+        <aside className="admin-sidebar-wrap" aria-label="Admin navigation">
+          <nav className="admin-sidebar">
+            <p className="admin-sidebar-heading">Menu</p>
+            <ul className="admin-nav-list">
+              {SIDEBAR_NAV.map(({ id, label, sub, Icon }) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className={`admin-nav-item${activeNav === id ? ' admin-nav-item--active' : ''}`}
+                    onClick={() => setActiveNav(id)}
+                  >
+                    <span className="admin-nav-icon" aria-hidden>
+                      <Icon />
                     </span>
-                    <span className="dash-action-body">
-                      <span className="dash-action-title">{item.title}</span>
-                      <span className="dash-action-desc">{item.desc}</span>
+                    <span className="admin-nav-text">
+                      <span className="admin-nav-label">{label}</span>
+                      <span className="admin-nav-sub">{sub}</span>
                     </span>
                   </button>
-                );
-              })}
-            </div>
-          </section>
-        </div>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
 
-        <section className="dash-section dash-panel admin-panel-activity" aria-labelledby="activity-heading">
-          <div className="dash-panel-head">
-            <h2 id="activity-heading" className="dash-panel-title">
-              Recent activity
-            </h2>
-          </div>
-          <ul className="admin-activity-list">
-            <li className="admin-activity-item">
-              <span className="admin-activity-dot" aria-hidden />
-              <div>
-                <strong>Signed in</strong>
-                <span className="admin-activity-meta">You’re viewing the administrator workspace.</span>
-              </div>
-              <time className="admin-activity-time">Now</time>
-            </li>
-            <li className="admin-activity-item">
-              <span className="admin-activity-dot admin-activity-dot--muted" aria-hidden />
-              <div>
-                <strong>Activity history</strong>
-                <span className="admin-activity-meta">Recent actions across the system will show here.</span>
-              </div>
-              <time className="admin-activity-time">—</time>
-            </li>
-          </ul>
-        </section>
-
-        <p className="dash-footnote">
-          Everyone uses the same sign-in page. This administrator view is shown only to accounts with the Admin role.
-        </p>
-      </main>
+        <main className="dash-main admin-main-area">{renderMain()}</main>
+      </div>
     </div>
   );
 };
