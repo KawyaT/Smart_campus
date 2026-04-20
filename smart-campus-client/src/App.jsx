@@ -1,11 +1,46 @@
-﻿import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import Login from './components/Login';
+import Register from './components/Register';
+import OAuthSuccess from './components/OAuthSuccess';
+import Dashboard from './components/Dashboard';
+import AdminDashboard from './components/AdminDashboard';
+import UserDashboard from './components/UserDashboard';
+import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
 import TicketDashboard from "./pages/tickets/TicketDashboard";
-import TicketsPage from "./pages/tickets/TicketsPage";
-import BookingsPage from "./pages/bookings/BookingsPage";
-import SettingsPage from "./pages/notifications/SettingsPage";
+//import TicketsPage from "./pages/tickets/TicketsPage";
+//import BookingsPage from "./pages/bookings/BookingsPage";
+//import SettingsPage from "./pages/notifications/SettingsPage";
 import "./App.css";
 
-function App() {
+const homePathForUser = (user) =>
+  user?.role === 'ADMIN' ? '/admin-dashboard' : '/user-dashboard';
+
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to={homePathForUser(user)} replace />;
+  }
+
+  return children;
+};
+
+// Campus Operations Dashboard Component
+const CampusOperationsDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -110,12 +145,82 @@ function App() {
 
         <div className="content-wrapper scrollable">
           {activeTab === "dashboard" && <TicketDashboard />}
-          {activeTab === "tickets" && <TicketsPage />}
-          {activeTab === "bookings" && <BookingsPage />}
-          {activeTab === "settings" && <SettingsPage />}
+          {/*{activeTab === "tickets" && <TicketsPage />}*/}
+          {/*{activeTab === "bookings" && <BookingsPage />}*/}
+          {/*{activeTab === "settings" && <SettingsPage />}*/}
         </div>
       </main>
     </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="app" data-theme="smartuni">
+          <ToastContainer position="top-right" autoClose={2500} pauseOnHover theme="light" />
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
+            <Route path="/oauth-success" element={<OAuthSuccess />} />
+
+            <Route
+              path="/admin-dashboard"
+              element={
+                <AdminDashboardRoute>
+                  <AdminDashboard />
+                </AdminDashboardRoute>
+              }
+            />
+            <Route
+              path="/user-dashboard"
+              element={
+                <UserDashboardRoute>
+                  <UserDashboard />
+                </UserDashboardRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Campus Operations Routes */}
+            <Route
+              path="/campus-operations"
+              element={
+                <ProtectedRoute>
+                  <CampusOperationsDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 
