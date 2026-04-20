@@ -68,7 +68,14 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.cancelMyBooking(requesterId, bookingId));
     }
 
-   
+    @PatchMapping("/my/{bookingId}")
+    public ResponseEntity<BookingResponse> updateMyBooking(
+        @RequestHeader("X-User-Id") @NotBlank String requesterId,
+        @PathVariable String bookingId,
+        @Valid @RequestBody BookingUpdateRequest request
+    ) {
+        return ResponseEntity.ok(bookingService.updateMyBooking(requesterId, bookingId, request));
+    }
 
     @GetMapping("/admin")
     public ResponseEntity<List<BookingResponse>> getAllBookingsForAdmin(
