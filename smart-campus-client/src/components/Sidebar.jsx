@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
+import { getColors } from '../theme/colors';
 
 const nav = [
   { label: 'Facilities', path: '/resources', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z' },
@@ -11,33 +13,37 @@ const nav = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark, toggleTheme } = useTheme();
+  const c = getColors(isDark);
 
   return (
     <div style={{
-      width: '220px', background: '#0d1117',
-      borderRight: '1px solid #1e2736',
-      padding: '24px 16px', position: 'fixed',
+      width: '220px',
+      background: c.sidebarBg,
+      borderRight: `1px solid ${c.border}`,
+      padding: '24px 16px',
+      position: 'fixed',
       top: 0, left: 0, bottom: 0, zIndex: 100,
+      overflowX: 'hidden',
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px', padding: '0 8px' }}>
         <img
-            src="/favicon.png"
-            alt="SmartCampus"
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              objectFit: 'cover',
-            }}
+          src="/favicon.png"
+          alt="SmartCampus"
+          style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }}
         />
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>SmartCampus</div>
-          <div style={{ fontSize: '10px', color: '#4b6a9b' }}>Operations Hub</div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: c.textPrimary }}>SmartCampus</div>
+          <div style={{ fontSize: '10px', color: c.textMuted }}>Operations Hub</div>
         </div>
       </div>
 
-      <div style={{ fontSize: '10px', color: '#4b6a9b', letterSpacing: '.08em', padding: '0 8px', marginBottom: '8px', textTransform: 'uppercase' }}>
+      <div style={{
+        fontSize: '10px', color: c.textMuted,
+        letterSpacing: '.08em', padding: '0 8px',
+        marginBottom: '8px', textTransform: 'uppercase',
+      }}>
         Main
       </div>
 
@@ -48,9 +54,10 @@ export default function Sidebar() {
             display: 'flex', alignItems: 'center', gap: '10px',
             padding: '9px 10px', borderRadius: '8px', marginBottom: '2px',
             cursor: 'pointer',
-            background: active ? '#1a2740' : 'transparent',
-            color: active ? '#fff' : '#8899b4',
+            background: active ? (isDark ? '#1a2740' : '#eff6ff') : 'transparent',
+            color: active ? c.accent : c.textSecondary,
             fontSize: '13px',
+            transition: 'all .15s',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d={item.icon} />
@@ -59,6 +66,30 @@ export default function Sidebar() {
           </div>
         );
       })}
+
+      <div style={{
+        position: 'absolute', bottom: '24px', left: '16px', right: '16px',
+      }}>
+        <div style={{
+          fontSize: '10px', color: c.textMuted,
+          letterSpacing: '.08em', padding: '0 8px',
+          marginBottom: '8px', textTransform: 'uppercase',
+        }}>
+          Appearance
+        </div>
+        <div
+          onClick={toggleTheme}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '9px 10px', borderRadius: '8px',
+            cursor: 'pointer', border: `1px solid ${c.border}`,
+            background: c.hoverBg, color: c.textSecondary, fontSize: '13px',
+          }}
+        >
+          <span style={{ fontSize: '16px' }}>{isDark ? '☀️' : '🌙'}</span>
+          {isDark ? 'Light mode' : 'Dark mode'}
+        </div>
+      </div>
     </div>
   );
 }
