@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.png';
 
 const IconUsers = () => (
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -61,7 +62,7 @@ const ADMIN_STATS = [
 ];
 
 const ADMIN_SHORTCUTS = [
-  { title: 'User & role management', desc: 'Review accounts and assign roles', Icon: IconUsers },
+  { title: 'User management', desc: 'Review accounts and assign roles', Icon: IconUsers },
   { title: 'Booking approvals', desc: 'Approve or reject requests', Icon: IconCalendar },
   { title: 'Incident command', desc: 'Tickets, priorities, assignments', Icon: IconTicket },
   { title: 'Facilities catalogue', desc: 'Resources and availability', Icon: IconBuilding },
@@ -76,13 +77,7 @@ const AdminDashboard = () => {
     <div className="dash dash--admin">
       <header className="dash-topbar">
         <div className="dash-brand">
-          <span className="dash-brand-mark">SC</span>
-          <div className="dash-brand-text">
-            <p className="dash-brand-title">Smart Campus</p>
-            <span className="dash-brand-tag">
-              <span className="admin-mode-pill">Administrator</span>
-            </span>
-          </div>
+          <img src={logo} alt="SmartUNI" className="dash-brand-logo" />
         </div>
         <div className="dash-topbar-actions">
           <div className="dash-user" title={user?.email}>

@@ -278,38 +278,14 @@
   color: inherit;
 }
 
-.dash-brand-mark {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #2563eb, #1d4ed8);
-  color: #fff;
-  font-weight: 800;
-  font-size: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: -0.02em;
-}
-
-.dash-brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dash-brand-title {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.dash-brand-tag {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
+.dash-brand-logo {
+  display: block;
+  height: 90px;
+  width: auto;
+  max-width: 500px;
+  object-fit: contain;
+  object-position: left center;
+  flex-shrink: 0;
 }
 
 .dash-topbar-actions {
@@ -847,19 +823,6 @@
 /* ---------- Admin dashboard ---------- */
 .dash--admin {
   background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
-}
-
-.admin-mode-pill {
-  display: inline-block;
-  margin-top: 2px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: linear-gradient(135deg, #1e3a5f, #1d4ed8);
-  color: #fff;
 }
 
 .dash-avatar--admin {

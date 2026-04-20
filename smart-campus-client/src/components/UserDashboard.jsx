@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { notificationsAPI } from '../api/notifications';
+import logo from '../assets/logo.png';
 import NotificationBell from './NotificationBell';
 
 const IconCalendar = () => (
@@ -127,11 +128,7 @@ const UserDashboard = () => {
     <div className="dash">
       <header className="dash-topbar">
         <div className="dash-brand">
-          <span className="dash-brand-mark">SC</span>
-          <div className="dash-brand-text">
-            <p className="dash-brand-title">Smart Campus</p>
-            <span className="dash-brand-tag">Operations Hub</span>
-          </div>
+          <img src={logo} alt="SmartUNI" className="dash-brand-logo" />
         </div>
         <div className="dash-topbar-actions">
           <NotificationBell onUnreadChange={onUnreadChange} />
