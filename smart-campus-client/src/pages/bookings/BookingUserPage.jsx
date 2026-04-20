@@ -1,5 +1,6 @@
 export default function BookingUserPage({
   resources,
+  selectedResource,
   isLoadingResources,
   form,
   isSubmitting,
@@ -102,9 +103,13 @@ export default function BookingUserPage({
                 name="expectedAttendees"
                 type="number"
                 min="1"
+                max={selectedResource?.capacity || undefined}
                 value={form.expectedAttendees}
                 onChange={onFormChange}
               />
+              {selectedResource?.capacity ? (
+                <small className="field-hint">Maximum for selected resource: {selectedResource.capacity}</small>
+              ) : null}
             </label>
 
             <div className="form-actions">

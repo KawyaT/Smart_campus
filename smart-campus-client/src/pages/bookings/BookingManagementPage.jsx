@@ -266,6 +266,10 @@ export default function BookingManagementPage() {
       ...previous,
       resourceId: selectedId,
       resourceName: selectedResource?.name || '',
+      expectedAttendees:
+        selectedResource?.capacity && Number(previous.expectedAttendees) > selectedResource.capacity
+          ? String(selectedResource.capacity)
+          : previous.expectedAttendees,
     }))
   }
 
@@ -321,6 +325,7 @@ export default function BookingManagementPage() {
       {mode === 'USER' ? (
         <BookingUserPage
           resources={resources}
+          selectedResource={resources.find((resource) => resource.id === form.resourceId) || null}
           isLoadingResources={isLoadingResources}
           form={form}
           isSubmitting={isSubmitting}

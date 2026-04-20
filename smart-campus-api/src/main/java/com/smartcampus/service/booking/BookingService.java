@@ -22,7 +22,9 @@ import com.smartcampus.dto.response.booking.BookingResponse;
 import com.smartcampus.dto.response.booking.BookingUsageCount;
 import com.smartcampus.model.booking.Booking;
 import com.smartcampus.model.booking.BookingStatus;
+import com.smartcampus.model.resource.Resource;
 import com.smartcampus.repository.booking.BookingRepository;
+import com.smartcampus.repository.resource.ResourceRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,10 +41,12 @@ public class BookingService {
     private static final int TOP_HOUR_LIMIT = 6;
 
     private final BookingRepository bookingRepository;
+    private final ResourceRepository resourceRepository;
 
     public BookingResponse createBooking(BookingCreateRequest request, String requesterId, String requesterName) {
         validateTimeRange(request.startTime(), request.endTime());
         validateSameDayNotInPast(request.bookingDate(), request.startTime());
+        validateResourceCapacity(request.resourceId(), request.expectedAttendees());
         ensureNoConflict(request.resourceId(), request.bookingDate(), request.startTime(), request.endTime());
 
         Booking booking = Booking.builder()
@@ -104,6 +108,7 @@ public class BookingService {
 
         validateTimeRange(request.startTime(), request.endTime());
         validateSameDayNotInPast(request.bookingDate(), request.startTime());
+        validateResourceCapacity(request.resourceId(), request.expectedAttendees());
         ensureNoConflictForUpdate(
             booking.getId(),
             request.resourceId(),
@@ -251,6 +256,22 @@ public class BookingService {
     private void validateSameDayNotInPast(LocalDate bookingDate, LocalTime startTime) {
         if (bookingDate.equals(LocalDate.now()) && !startTime.isAfter(LocalTime.now())) {
             throw new IllegalArgumentException("Start time must be in the future for today's booking");
+        }
+    }
+
+    private void validateResourceCapacity(String resourceId, Integer expectedAttendees) {
+        if (expectedAttendees == null) {
+            return;
+        }
+
+        Resource resource = resourceRepository.findById(resourceId.trim())
+            .orElseThrow(() -> new IllegalArgumentException("Selected resource not found"));
+
+        Integer capacity = resource.getCapacity();
+        if (capacity != null && expectedAttendees > capacity) {
+            throw new IllegalArgumentException(
+                "Expected attendees exceed resource capacity. Capacity is " + capacity
+            );
         }
     }
 

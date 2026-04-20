@@ -179,6 +179,14 @@ textarea {
   min-height: 7.5rem;
 }
 
+.field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 button {
   padding: 0.78rem 1rem;
   border: none;
