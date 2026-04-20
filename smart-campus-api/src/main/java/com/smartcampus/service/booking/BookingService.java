@@ -5,11 +5,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.smartcampus.dto.request.booking.BookingCreateRequest;
+import com.smartcampus.dto.request.booking.BookingUpdateRequest;
 import com.smartcampus.dto.response.booking.BookingResponse;
 import com.smartcampus.model.booking.Booking;
 import com.smartcampus.model.booking.BookingStatus;
@@ -82,6 +84,84 @@ public class BookingService {
         return toResponse(bookingRepository.save(booking));
     }
 
+    public BookingResponse updateMyBooking(String requesterId, String bookingId, BookingUpdateRequest request) {
+        Booking booking = bookingRepository.findByIdAndRequesterId(bookingId, requesterId)
+            .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new InvalidBookingStateException("Only pending bookings can be updated");
+        }
+
+        validateTimeRange(request.startTime(), request.endTime());
+        validateSameDayNotInPast(request.bookingDate(), request.startTime());
+        ensureNoConflictForUpdate(
+            booking.getId(),
+            request.resourceId(),
+            request.bookingDate(),
+            request.startTime(),
+            request.endTime()
+        );
+
+        booking.setResourceId(request.resourceId().trim());
+        booking.setResourceName(normalizeOptional(request.resourceName()));
+        booking.setBookingDate(request.bookingDate());
+        booking.setStartTime(request.startTime());
+        booking.setEndTime(request.endTime());
+        booking.setPurpose(request.purpose().trim());
+        booking.setExpectedAttendees(request.expectedAttendees());
+        booking.setUpdatedAt(LocalDateTime.now());
+
+        return toResponse(bookingRepository.save(booking));
+    }
+
+    public List<BookingResponse> getAllBookings(BookingStatus status, String requesterId) {
+        Stream<Booking> stream;
+
+        if (status != null && StringUtils.hasText(requesterId)) {
+            stream = bookingRepository.findByRequesterIdAndStatusOrderByBookingDateDescStartTimeAsc(requesterId.trim(), status).stream();
+        } else if (status != null) {
+            stream = bookingRepository.findByStatusOrderByBookingDateDescStartTimeAsc(status).stream();
+        } else if (StringUtils.hasText(requesterId)) {
+            stream = bookingRepository.findByRequesterIdOrderByBookingDateDescStartTimeAsc(requesterId.trim()).stream();
+        } else {
+            stream = bookingRepository.findAllByOrderByBookingDateDescStartTimeAsc().stream();
+        }
+
+        return stream.map(this::toResponse).toList();
+    }
+
+    public BookingResponse reviewBooking(
+        String bookingId,
+        BookingStatus decision,
+        String reason,
+        String reviewerId,
+        String reviewerName
+    ) {
+        if (decision != BookingStatus.APPROVED && decision != BookingStatus.REJECTED) {
+            throw new IllegalArgumentException("Decision must be APPROVED or REJECTED");
+        }
+
+        if (decision == BookingStatus.REJECTED && !StringUtils.hasText(reason)) {
+            throw new IllegalArgumentException("Reason is required when rejecting a booking");
+        }
+
+        Booking booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new InvalidBookingStateException("Only pending bookings can be reviewed");
+        }
+
+        booking.setStatus(decision);
+        booking.setDecisionReason(normalizeOptional(reason));
+        booking.setReviewedById(reviewerId.trim());
+        booking.setReviewedByName(normalizeOptional(reviewerName));
+        booking.setReviewedAt(LocalDateTime.now());
+        booking.setUpdatedAt(LocalDateTime.now());
+
+        return toResponse(bookingRepository.save(booking));
+    }
+
     private void ensureNoConflict(String resourceId, LocalDate bookingDate, LocalTime startTime, LocalTime endTime) {
         boolean conflictExists = bookingRepository.existsByResourceIdAndBookingDateAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
             resourceId.trim(),
@@ -90,6 +170,28 @@ public class BookingService {
             endTime,
             startTime
         );
+
+        if (conflictExists) {
+            throw new BookingConflictException("The selected resource is already booked for the chosen time range");
+        }
+    }
+
+    private void ensureNoConflictForUpdate(
+        String bookingId,
+        String resourceId,
+        LocalDate bookingDate,
+        LocalTime startTime,
+        LocalTime endTime
+    ) {
+        boolean conflictExists = bookingRepository
+            .existsByResourceIdAndBookingDateAndStatusInAndStartTimeLessThanAndEndTimeGreaterThanAndIdNot(
+                resourceId.trim(),
+                bookingDate,
+                ACTIVE_BOOKING_STATUSES,
+                endTime,
+                startTime,
+                bookingId
+            );
 
         if (conflictExists) {
             throw new BookingConflictException("The selected resource is already booked for the chosen time range");

@@ -13,6 +13,10 @@ import com.smartcampus.model.booking.BookingStatus;
 
 public interface BookingRepository extends MongoRepository<Booking, String> {
 
+    List<Booking> findAllByOrderByBookingDateDescStartTimeAsc();
+
+    List<Booking> findByStatusOrderByBookingDateDescStartTimeAsc(BookingStatus status);
+
     List<Booking> findByRequesterIdOrderByBookingDateDescStartTimeAsc(String requesterId);
 
     List<Booking> findByRequesterIdAndStatusOrderByBookingDateDescStartTimeAsc(String requesterId, BookingStatus status);
@@ -25,5 +29,14 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
         Collection<BookingStatus> statuses,
         LocalTime endTime,
         LocalTime startTime
+    );
+
+    boolean existsByResourceIdAndBookingDateAndStatusInAndStartTimeLessThanAndEndTimeGreaterThanAndIdNot(
+        String resourceId,
+        LocalDate bookingDate,
+        Collection<BookingStatus> statuses,
+        LocalTime endTime,
+        LocalTime startTime,
+        String id
     );
 }

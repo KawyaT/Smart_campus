@@ -1,38 +1,78 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
-  --bg-top: #e9f5f8;
-  --bg-bottom: #fefaf1;
-  --card: #ffffffcc;
-  --text: #162026;
-  --muted: #4f6470;
-  --line: #c9dbe3;
-  --primary: #096b72;
-  --primary-strong: #00484d;
-  --danger: #b63136;
-  --success: #2f7c4a;
-  --pending: #8a5e00;
-  --approved: #166534;
-  --rejected: #9f1239;
-  --cancelled: #475569;
-  --shadow: 0 20px 50px rgba(9, 56, 72, 0.13);
+  --bg-top: #08131d;
+  --bg-bottom: #0f1722;
+  --card: rgba(16, 24, 34, 0.72);
+  --card-strong: rgba(18, 28, 40, 0.88);
+  --text: #e9eef3;
+  --muted: #9aa8b4;
+  --line: rgba(148, 163, 184, 0.16);
+  --line-strong: rgba(148, 163, 184, 0.28);
+  --primary: #3bb6c1;
+  --primary-strong: #1d7f88;
+  --primary-soft: rgba(59, 182, 193, 0.12);
+  --danger: #ef6a73;
+  --success: #5fd18d;
+  --pending: #f0b34d;
+  --approved: #5fd18d;
+  --rejected: #ef6a8e;
+  --cancelled: #8fa1b5;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.24);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-height: 100dvh;
   font-family: 'Manrope', 'Segoe UI', sans-serif;
+  line-height: 1.5;
   color: var(--text);
   background:
-    radial-gradient(circle at 90% 10%, rgba(66, 188, 232, 0.18), transparent 35%),
-    radial-gradient(circle at 10% 90%, rgba(255, 176, 76, 0.18), transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(59, 182, 193, 0.15), transparent 30%),
+    radial-gradient(circle at 12% 88%, rgba(239, 106, 115, 0.1), transparent 36%),
+    radial-gradient(circle at 65% 70%, rgba(95, 209, 141, 0.08), transparent 30%),
     linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  opacity: 0.32;
 }
 
 #root {
   min-height: 100dvh;
+}
+
+::selection {
+  background: rgba(14, 111, 117, 0.18);
+}
+
+input,
+select,
+textarea,
+button {
+  outline: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(59, 182, 193, 0.18);
 }

@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { cancelBooking, createBooking, getMyBookings, getAvailableResources } from '../../api/bookingApi'
+import {
+  approveBooking,
+  cancelBooking,
+  createBooking,
+  getAllBookingsForAdmin,
+  getAvailableResources,
+  getMyBookings,
+  rejectBooking,
+  updateMyBooking,
+} from '../../api/bookingApi'
+import BookingAdminPage from './BookingAdminPage'
+import BookingUserPage from './BookingUserPage'
 import './BookingManagementPage.css'
-
-const STATUS_OPTIONS = ['', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']
 
 const initialForm = {
   resourceId: '',
@@ -15,11 +24,16 @@ const initialForm = {
 }
 
 export default function BookingManagementPage() {
+  const [mode, setMode] = useState('USER')
   const [user, setUser] = useState({ userId: 'student-001', userName: 'Default Student' })
   const [statusFilter, setStatusFilter] = useState('')
+  const [adminStatusFilter, setAdminStatusFilter] = useState('')
+  const [adminRequesterFilter, setAdminRequesterFilter] = useState('')
+  const [decisionInputs, setDecisionInputs] = useState({})
   const [bookings, setBookings] = useState([])
   const [resources, setResources] = useState([])
   const [form, setForm] = useState(initialForm)
+  const [editingBookingId, setEditingBookingId] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingBookings, setIsLoadingBookings] = useState(false)
   const [isLoadingResources, setIsLoadingResources] = useState(false)
@@ -27,10 +41,15 @@ export default function BookingManagementPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    loadResources()
-    loadBookings()
+    if (mode === 'USER') {
+      loadResources()
+      loadBookings()
+      return
+    }
+
+    loadAdminBookings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, user.userId])
+  }, [mode, statusFilter, user.userId, adminStatusFilter, adminRequesterFilter])
 
   async function loadResources() {
     setIsLoadingResources(true)
@@ -72,6 +91,20 @@ export default function BookingManagementPage() {
     }
   }
 
+  async function loadAdminBookings() {
+    setIsLoadingBookings(true)
+    setError('')
+
+    try {
+      const data = await getAllBookingsForAdmin(adminStatusFilter, adminRequesterFilter.trim())
+      setBookings(data)
+    } catch (loadError) {
+      setError(loadError.message)
+    } finally {
+      setIsLoadingBookings(false)
+    }
+  }
+
   async function handleCreateBooking(event) {
     event.preventDefault()
     setError('')
@@ -96,12 +129,22 @@ export default function BookingManagementPage() {
     setIsSubmitting(true)
 
     try {
-      const created = await createBooking(payload, {
-        userId: user.userId.trim(),
-        userName: user.userName.trim(),
-      })
-      setSuccess(`Booking created as ${created.status}.`)
+      if (editingBookingId) {
+        await updateMyBooking(editingBookingId, payload, {
+          userId: user.userId.trim(),
+          userName: user.userName.trim(),
+        })
+        setSuccess('Booking updated successfully.')
+      } else {
+        const created = await createBooking(payload, {
+          userId: user.userId.trim(),
+          userName: user.userName.trim(),
+        })
+        setSuccess(`Booking created as ${created.status}.`)
+      }
+
       setForm(initialForm)
+      setEditingBookingId(null)
       await loadBookings()
     } catch (submitError) {
       setError(submitError.message)
@@ -126,175 +169,171 @@ export default function BookingManagementPage() {
     }
   }
 
+  async function handleApproveBooking(bookingId) {
+    setError('')
+    setSuccess('')
+
+    if (!user.userId.trim()) {
+      setError('Admin User ID is required.')
+      return
+    }
+
+    try {
+      await approveBooking(
+        bookingId,
+        {
+          userId: user.userId.trim(),
+          userName: user.userName.trim(),
+        },
+        decisionInputs[bookingId],
+      )
+      setSuccess('Booking approved successfully.')
+      setDecisionInputs((prev) => ({ ...prev, [bookingId]: '' }))
+      await loadAdminBookings()
+    } catch (approveError) {
+      setError(approveError.message)
+    }
+  }
+
+  async function handleRejectBooking(bookingId) {
+    setError('')
+    setSuccess('')
+
+    if (!user.userId.trim()) {
+      setError('Admin User ID is required.')
+      return
+    }
+
+    const reason = decisionInputs[bookingId]?.trim()
+    if (!reason) {
+      setError('Reason is required to reject a booking.')
+      return
+    }
+
+    try {
+      await rejectBooking(
+        bookingId,
+        {
+          userId: user.userId.trim(),
+          userName: user.userName.trim(),
+        },
+        reason,
+      )
+      setSuccess('Booking rejected successfully.')
+      setDecisionInputs((prev) => ({ ...prev, [bookingId]: '' }))
+      await loadAdminBookings()
+    } catch (rejectError) {
+      setError(rejectError.message)
+    }
+  }
+
   function updateFormField(event) {
     const { name, value } = event.target
     setForm((previous) => ({ ...previous, [name]: value }))
   }
 
+  function handleResourceSelect(event) {
+    const selectedId = event.target.value
+    const selectedResource = resources.find((r) => r.id === selectedId)
+    setForm((previous) => ({
+      ...previous,
+      resourceId: selectedId,
+      resourceName: selectedResource?.name || '',
+    }))
+  }
+
+  function handleModeToggle() {
+    setMode((previous) => (previous === 'USER' ? 'ADMIN' : 'USER'))
+    setError('')
+    setSuccess('')
+    setEditingBookingId(null)
+    setForm(initialForm)
+  }
+
+  function handleStartEditBooking(booking) {
+    if (booking.status !== 'PENDING') {
+      return
+    }
+
+    setEditingBookingId(booking.id)
+    setForm({
+      resourceId: booking.resourceId || '',
+      resourceName: booking.resourceName || '',
+      bookingDate: booking.bookingDate || '',
+      startTime: booking.startTime || '',
+      endTime: booking.endTime || '',
+      purpose: booking.purpose || '',
+      expectedAttendees: booking.expectedAttendees ?? '',
+    })
+    setError('')
+    setSuccess('')
+  }
+
+  function handleCancelEditBooking() {
+    setEditingBookingId(null)
+    setForm(initialForm)
+  }
+
   return (
     <section className="booking-page">
       <header className="booking-header">
-        <p className="kicker">Smart Campus</p>
-        <h1>Booking Management</h1>
+        <div className="header-top">
+          <p className="kicker">Smart Campus</p>
+          <button className="mode-switch" type="button" onClick={handleModeToggle}>
+            Switch to {mode === 'USER' ? 'Admin' : 'User'}
+          </button>
+        </div>
+        <h1>{mode === 'USER' ? 'Booking Management' : 'Admin Booking Review'}</h1>
         <p className="subtitle">
-          Request resources, check approval state, and cancel approved bookings from one place.
+          {mode === 'USER'
+            ? 'Request resources, check approval state, and cancel approved bookings from one place.'
+            : 'Review all booking requests, apply filters, and approve or reject pending requests with a reason.'}
         </p>
       </header>
 
-      <div className="identity-panel card reveal">
-        <h2>Current User Context</h2>
-        <p>These fields are used as request headers until full auth is connected.</p>
-        <div className="identity-grid">
-          <label>
-            User ID
-            <input
-              name="userId"
-              value={user.userId}
-              onChange={(event) => setUser((prev) => ({ ...prev, userId: event.target.value }))}
-              placeholder="student-001"
-            />
-          </label>
-          <label>
-            User Name (optional)
-            <input
-              name="userName"
-              value={user.userName}
-              onChange={(event) => setUser((prev) => ({ ...prev, userName: event.target.value }))}
-              placeholder="Jane Doe"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="booking-content">
-        <article className="card reveal delay-1">
-          <h2>Request New Booking</h2>
-          <form className="booking-form" onSubmit={handleCreateBooking}>
-            <label>
-              Select Resource
-              <select
-                name="resourceId"
-                value={form.resourceId}
-                onChange={(event) => {
-                  const selectedId = event.target.value
-                  const selectedResource = resources.find((r) => r.id === selectedId)
-                  setForm((prev) => ({
-                    ...prev,
-                    resourceId: selectedId,
-                    resourceName: selectedResource?.name || '',
-                  }))
-                }}
-                required
-              >
-                <option value="">-- Choose a resource --</option>
-                {isLoadingResources ? (
-                  <option disabled>Loading resources...</option>
-                ) : resources.length === 0 ? (
-                  <option disabled>No resources available</option>
-                ) : (
-                  resources.map((resource) => (
-                    <option key={resource.id} value={resource.id}>
-                      {resource.name}
-                      {resource.location ? ` (${resource.location})` : ''}
-                      {resource.capacity ? ` - Capacity: ${resource.capacity}` : ''}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-
-            <label>
-              Date
-              <input name="bookingDate" type="date" value={form.bookingDate} onChange={updateFormField} required />
-            </label>
-
-            <div className="time-grid">
-              <label>
-                Start Time
-                <input name="startTime" type="time" value={form.startTime} onChange={updateFormField} required />
-              </label>
-              <label>
-                End Time
-                <input name="endTime" type="time" value={form.endTime} onChange={updateFormField} required />
-              </label>
-            </div>
-
-            <label>
-              Purpose
-              <textarea name="purpose" value={form.purpose} onChange={updateFormField} rows={3} required />
-            </label>
-
-            <label>
-              Expected Attendees (optional)
-              <input
-                name="expectedAttendees"
-                type="number"
-                min="1"
-                value={form.expectedAttendees}
-                onChange={updateFormField}
-              />
-            </label>
-
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit Request'}
-            </button>
-          </form>
-        </article>
-
-        <article className="card reveal delay-2">
-          <div className="table-head">
-            <h2>My Bookings</h2>
-            <label>
-              Filter
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                {STATUS_OPTIONS.map((status) => (
-                  <option key={status || 'ALL'} value={status}>
-                    {status || 'ALL'}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {isLoadingBookings ? <p className="empty">Loading bookings...</p> : null}
-
-          {!isLoadingBookings && sortedBookings.length === 0 ? (
-            <p className="empty">No bookings found for this user and filter.</p>
-          ) : null}
-
-          {!isLoadingBookings && sortedBookings.length > 0 ? (
-            <div className="booking-list">
-              {sortedBookings.map((booking) => (
-                <div key={booking.id} className="booking-item">
-                  <div className="booking-item-top">
-                    <h3>{booking.resourceName || booking.resourceId}</h3>
-                    <span className={`status-chip ${booking.status.toLowerCase()}`}>{booking.status}</span>
-                  </div>
-
-                  <p className="booking-meta">
-                    {booking.bookingDate} | {booking.startTime} - {booking.endTime}
-                  </p>
-                  <p className="booking-meta">Purpose: {booking.purpose}</p>
-                  <p className="booking-meta">Attendees: {booking.expectedAttendees ?? 'N/A'}</p>
-                  {booking.decisionReason ? <p className="booking-meta">Decision: {booking.decisionReason}</p> : null}
-                  {booking.cancellationReason ? (
-                    <p className="booking-meta">Cancellation: {booking.cancellationReason}</p>
-                  ) : null}
-
-                  {booking.status === 'APPROVED' ? (
-                    <button className="cancel-btn" onClick={() => handleCancelBooking(booking.id)}>
-                      Cancel Booking
-                    </button>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </article>
-      </div>
-
-      {error ? <p className="message error">{error}</p> : null}
-      {success ? <p className="message success">{success}</p> : null}
+      {mode === 'USER' ? (
+        <BookingUserPage
+          resources={resources}
+          isLoadingResources={isLoadingResources}
+          form={form}
+          isSubmitting={isSubmitting}
+          statusFilter={statusFilter}
+          isLoadingBookings={isLoadingBookings}
+          sortedBookings={sortedBookings}
+          user={user}
+          onUserChange={(field, value) => setUser((previous) => ({ ...previous, [field]: value }))}
+          onFormChange={updateFormField}
+          onResourceSelect={handleResourceSelect}
+          onSubmit={handleCreateBooking}
+          onStatusFilterChange={setStatusFilter}
+          onCancelBooking={handleCancelBooking}
+          onStartEditBooking={handleStartEditBooking}
+          onCancelEditBooking={handleCancelEditBooking}
+          isEditMode={Boolean(editingBookingId)}
+          error={error}
+          success={success}
+        />
+      ) : (
+        <BookingAdminPage
+          isLoadingBookings={isLoadingBookings}
+          sortedBookings={sortedBookings}
+          statusFilter={adminStatusFilter}
+          requesterFilter={adminRequesterFilter}
+          decisionInputs={decisionInputs}
+          onStatusFilterChange={setAdminStatusFilter}
+          onRequesterFilterChange={setAdminRequesterFilter}
+          onDecisionInputChange={(bookingId, value) =>
+            setDecisionInputs((previous) => ({
+              ...previous,
+              [bookingId]: value,
+            }))
+          }
+          onApproveBooking={handleApproveBooking}
+          onRejectBooking={handleRejectBooking}
+          error={error}
+          success={success}
+        />
+      )}
     </section>
   )
 }

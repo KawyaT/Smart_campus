@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.smartcampus.dto.request.booking.BookingDecisionRequest;
 import com.smartcampus.dto.request.booking.BookingCreateRequest;
+import com.smartcampus.dto.request.booking.BookingUpdateRequest;
 import com.smartcampus.dto.response.booking.BookingResponse;
 import com.smartcampus.model.booking.BookingStatus;
 import com.smartcampus.service.booking.BookingService;
@@ -64,5 +66,48 @@ public class BookingController {
         @PathVariable String bookingId
     ) {
         return ResponseEntity.ok(bookingService.cancelMyBooking(requesterId, bookingId));
+    }
+
+   
+
+    @GetMapping("/admin")
+    public ResponseEntity<List<BookingResponse>> getAllBookingsForAdmin(
+        @RequestParam(required = false) BookingStatus status,
+        @RequestParam(required = false) String requesterId
+    ) {
+        return ResponseEntity.ok(bookingService.getAllBookings(status, requesterId));
+    }
+
+    @PatchMapping("/admin/{bookingId}/approve")
+    public ResponseEntity<BookingResponse> approveBooking(
+        @RequestHeader("X-User-Id") @NotBlank String reviewerId,
+        @RequestHeader(value = "X-User-Name", required = false) String reviewerName,
+        @PathVariable String bookingId,
+        @RequestBody(required = false) BookingDecisionRequest request
+    ) {
+        String reason = request == null ? null : request.reason();
+        return ResponseEntity.ok(bookingService.reviewBooking(
+            bookingId,
+            BookingStatus.APPROVED,
+            reason,
+            reviewerId,
+            reviewerName
+        ));
+    }
+
+    @PatchMapping("/admin/{bookingId}/reject")
+    public ResponseEntity<BookingResponse> rejectBooking(
+        @RequestHeader("X-User-Id") @NotBlank String reviewerId,
+        @RequestHeader(value = "X-User-Name", required = false) String reviewerName,
+        @PathVariable String bookingId,
+        @RequestBody BookingDecisionRequest request
+    ) {
+        return ResponseEntity.ok(bookingService.reviewBooking(
+            bookingId,
+            BookingStatus.REJECTED,
+            request.reason(),
+            reviewerId,
+            reviewerName
+        ));
     }
 }

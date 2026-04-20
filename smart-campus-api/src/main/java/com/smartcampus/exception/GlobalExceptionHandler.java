@@ -10,6 +10,13 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.smartcampus.service.booking.BookingConflictException;
+import com.smartcampus.service.booking.BookingNotFoundException;
+import com.smartcampus.service.booking.InvalidBookingStateException;
+import jakarta.validation.ConstraintViolationException;
+import java.util.LinkedHashMap;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -53,6 +60,53 @@ public class GlobalExceptionHandler {
             "error", ex.getMessage()
         ));
     }
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleBookingNotFound(BookingNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+            "timestamp", LocalDateTime.now().toString(),
+            "error", ex.getMessage()
+        ));
+    }
+
+    @ExceptionHandler(BookingConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleBookingConflict(BookingConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+            "timestamp", LocalDateTime.now().toString(),
+            "error", ex.getMessage()
+        ));
+    }
+
+    @ExceptionHandler({ InvalidBookingStateException.class, IllegalArgumentException.class })
+    public ResponseEntity<Map<String, Object>> handleInvalidRequest(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+            "timestamp", LocalDateTime.now().toString(),
+            "error", ex.getMessage()
+        ));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+            "timestamp", LocalDateTime.now().toString(),
+            "error", "Validation failed",
+            "fields", fieldErrors
+        ));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+            "timestamp", LocalDateTime.now().toString(),
+            "error", ex.getMessage()
+        ));
+    }
+
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
