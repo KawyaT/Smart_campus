@@ -1,0 +1,20 @@
+package com.smartcampus.dto.request;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class AddTicketCommentRequest {
+
+    @NotBlank(message = "Comment content is required")
+    private String content;
+
+    private boolean isInternal;
+    private String authorName;
+}

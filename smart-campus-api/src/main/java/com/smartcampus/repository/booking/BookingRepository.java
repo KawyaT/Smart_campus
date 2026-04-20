@@ -1,5 +1,6 @@
 package com.smartcampus.repository.booking;
 
+<<<<<<< feature/bookings
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collection;
@@ -40,3 +41,19 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
         String id
     );
 }
+=======
+import com.smartcampus.model.booking.Booking;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface BookingRepository extends MongoRepository<Booking, String> {
+    List<Booking> findByStatus(Booking.BookingStatus status);
+
+    List<Booking> findByFacilityId(String facilityId);
+
+    List<Booking> findByBookedByContainingIgnoreCase(String bookedBy);
+}
+>>>>>>> dev
