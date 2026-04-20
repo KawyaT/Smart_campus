@@ -525,4 +525,13 @@ button:disabled {
   .form-actions {
     grid-template-columns: 1fr;
   }
+
+  .checkin-verify-row {
+    grid-template-columns: 1fr;
+  }
+
+  .checkin-verify-row button {
+    width: 100%;
+    min-width: 0;
+  }
 }
