@@ -1,14 +1,3 @@
-<<<<<<< feature/bookings
-import BookingManagementPage from './pages/bookings/BookingManagementPage'
-import './App.css'
-
-function App() {
-  return (
-    <main className="app-shell">
-      <BookingManagementPage />
-    </main>
-  )
-=======
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -22,7 +11,8 @@ import AdminDashboard from './components/AdminDashboard';
 import UserDashboard from './components/UserDashboard';
 import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
 import TicketDashboard from "./pages/tickets/TicketDashboard";
-//import TicketsPage from "./pages/tickets/TicketsPage";
+import BookingManagementPage from './pages/bookings/BookingManagementPage';
+import TicketsPage from "./pages/tickets/TicketsPage";
 //import BookingsPage from "./pages/bookings/BookingsPage";
 //import SettingsPage from "./pages/notifications/SettingsPage";
 import "./App.css";
@@ -156,12 +146,21 @@ const CampusOperationsDashboard = () => {
 
         <div className="content-wrapper scrollable">
           {activeTab === "dashboard" && <TicketDashboard />}
+          {activeTab === "bookings" && <BookingManagementPage />}
           {/*{activeTab === "tickets" && <TicketsPage />}*/}
-          {/*{activeTab === "bookings" && <BookingsPage />}*/}
           {/*{activeTab === "settings" && <SettingsPage />}*/}
         </div>
       </main>
     </div>
+  );
+};
+
+// Simple Bookings View for backward compatibility
+const SimpleBookingsView = () => {
+  return (
+    <main className="app-shell">
+      <BookingManagementPage />
+    </main>
   );
 };
 
@@ -226,6 +225,16 @@ function App() {
               }
             />
 
+            {/* Simple Bookings View for backward compatibility */}
+            <Route
+              path="/bookings-simple"
+              element={
+                <ProtectedRoute>
+                  <SimpleBookingsView />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
@@ -233,7 +242,6 @@ function App() {
       </Router>
     </AuthProvider>
   );
->>>>>>> dev
 }
 
 export default App;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import TicketCard from '../../components/TicketCard';
 import TicketForm from '../../components/TicketForm';
-import TicketComments from '../../components/TicketComments';
+//import TicketComments from '../../components/TicketComments';
 import TicketAPI from '../../api/ticketAPI';
 import '../../styles/TicketsPage.css';
 
@@ -32,7 +32,7 @@ const TicketsPage = () => {
     }
   };
 
-  const handleTicketClick = async (ticket) => {
+ {/*} const handleTicketClick = async (ticket) => {
     setSelectedTicket(ticket);
     setShowForm(false);
     try {
@@ -42,7 +42,7 @@ const TicketsPage = () => {
       console.error('Error fetching comments:', err);
       setSelectedComments([]);
     }
-  };
+  };*/}
 
   const handleAddComment = async (commentData) => {
     try {
@@ -243,9 +243,9 @@ const TicketsPage = () => {
               </div>
             </div>
 
-            <div className="comments-section" style={{ marginTop: '2rem' }}>
+           {/*} <div className="comments-section" style={{ marginTop: '2rem' }}>
                <TicketComments ticketId={selectedTicket.id} comments={selectedComments} onAddComment={handleAddComment} />
-            </div>
+            </div>*/}
 
             <div className="detail-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
               <button

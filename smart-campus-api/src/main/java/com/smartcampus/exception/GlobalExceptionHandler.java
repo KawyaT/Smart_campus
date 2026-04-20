@@ -61,7 +61,6 @@ public class GlobalExceptionHandler {
         ));
     }
 
-<<<<<<< feature/bookings
     @ExceptionHandler(BookingNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleBookingNotFound(BookingNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
@@ -109,8 +108,6 @@ public class GlobalExceptionHandler {
     }
 
 
-=======
->>>>>>> dev
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(

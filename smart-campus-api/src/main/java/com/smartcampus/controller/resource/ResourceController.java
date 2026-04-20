@@ -1,12 +1,7 @@
 package com.smartcampus.controller.resource;
 
-<<<<<<< feature/bookings
-import com.smartcampus.dto.request.resource.ResourceRequest;
-import com.smartcampus.dto.response.resource.ResourceResponse;
-=======
 import com.smartcampus.dto.request.ResourceRequest;
 import com.smartcampus.dto.responce.resource.ResourceResponse;
->>>>>>> dev
 import com.smartcampus.model.resource.ResourceStatus;
 import com.smartcampus.model.resource.ResourceType;
 import com.smartcampus.service.resource.ResourceService;

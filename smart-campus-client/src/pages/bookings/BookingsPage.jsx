@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import BookingAPI from "../../api/bookingAPI";
+import BookingAPI from "../../api/bookingApi";
 import "../../styles/OperationsModules.css";
 
 function BookingsPage() {
