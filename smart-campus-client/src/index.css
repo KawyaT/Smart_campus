@@ -1,3 +1,82 @@
+<<<<<<< feature/bookings
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  --bg-top: #eef7fb;
+  --bg-bottom: #fffaf2;
+  --card: rgba(255, 255, 255, 0.82);
+  --card-strong: rgba(255, 255, 255, 0.95);
+  --text: #162431;
+  --muted: #4e6270;
+  --line: rgba(100, 125, 140, 0.24);
+  --line-strong: rgba(80, 107, 123, 0.38);
+  --primary: #0d7580;
+  --primary-strong: #09545d;
+  --primary-soft: rgba(13, 117, 128, 0.12);
+  --danger: #c53b49;
+  --success: #1f8a52;
+  --pending: #a36400;
+  --approved: #1d6d42;
+  --rejected: #af1f4f;
+  --cancelled: #516274;
+  --shadow: 0 20px 50px rgba(8, 43, 58, 0.14);
+  --shadow-soft: 0 8px 24px rgba(8, 43, 58, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(64, 181, 213, 0.2), transparent 34%),
+    radial-gradient(circle at 12% 88%, rgba(247, 171, 92, 0.16), transparent 38%),
+    radial-gradient(circle at 65% 70%, rgba(13, 117, 128, 0.08), transparent 30%),
+    linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.42) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.42) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  opacity: 0.22;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+::selection {
+  background: rgba(13, 117, 128, 0.2);
+}
+
+input,
+select,
+textarea,
+button {
+  outline: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(13, 117, 128, 0.2);
+=======
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
@@ -177,4 +256,5 @@ input:focus, textarea:focus, select:focus {
 
 .fade-in {
   animation: fadeIn 0.6s ease-out;
+>>>>>>> dev
 }

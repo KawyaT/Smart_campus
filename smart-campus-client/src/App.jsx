@@ -1,3 +1,14 @@
+<<<<<<< feature/bookings
+import BookingManagementPage from './pages/bookings/BookingManagementPage'
+import './App.css'
+
+function App() {
+  return (
+    <main className="app-shell">
+      <BookingManagementPage />
+    </main>
+  )
+=======
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -222,6 +233,7 @@ function App() {
       </Router>
     </AuthProvider>
   );
+>>>>>>> dev
 }
 
 export default App;
