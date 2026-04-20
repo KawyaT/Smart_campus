@@ -3,6 +3,7 @@ import {
   approveBooking,
   cancelBooking,
   createBooking,
+  getAdminBookingAnalytics,
   getAllBookingsForAdmin,
   getAvailableResources,
   getMyBookings,
@@ -37,6 +38,12 @@ export default function BookingManagementPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingBookings, setIsLoadingBookings] = useState(false)
   const [isLoadingResources, setIsLoadingResources] = useState(false)
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
+  const [analytics, setAnalytics] = useState({
+    totalTrackedBookings: 0,
+    topResources: [],
+    peakBookingHours: [],
+  })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -48,6 +55,7 @@ export default function BookingManagementPage() {
     }
 
     loadAdminBookings()
+    loadAdminAnalytics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, statusFilter, user.userId, adminStatusFilter, adminRequesterFilter])
 
@@ -102,6 +110,23 @@ export default function BookingManagementPage() {
       setError(loadError.message)
     } finally {
       setIsLoadingBookings(false)
+    }
+  }
+
+  async function loadAdminAnalytics() {
+    setIsLoadingAnalytics(true)
+    try {
+      const data = await getAdminBookingAnalytics()
+      setAnalytics(data)
+    } catch (analyticsError) {
+      setError(analyticsError.message)
+      setAnalytics({
+        totalTrackedBookings: 0,
+        topResources: [],
+        peakBookingHours: [],
+      })
+    } finally {
+      setIsLoadingAnalytics(false)
     }
   }
 
@@ -190,6 +215,7 @@ export default function BookingManagementPage() {
       setSuccess('Booking approved successfully.')
       setDecisionInputs((prev) => ({ ...prev, [bookingId]: '' }))
       await loadAdminBookings()
+      await loadAdminAnalytics()
     } catch (approveError) {
       setError(approveError.message)
     }
@@ -222,6 +248,7 @@ export default function BookingManagementPage() {
       setSuccess('Booking rejected successfully.')
       setDecisionInputs((prev) => ({ ...prev, [bookingId]: '' }))
       await loadAdminBookings()
+      await loadAdminAnalytics()
     } catch (rejectError) {
       setError(rejectError.message)
     }
@@ -317,6 +344,8 @@ export default function BookingManagementPage() {
         <BookingAdminPage
           isLoadingBookings={isLoadingBookings}
           sortedBookings={sortedBookings}
+          analytics={analytics}
+          isLoadingAnalytics={isLoadingAnalytics}
           statusFilter={adminStatusFilter}
           requesterFilter={adminRequesterFilter}
           decisionInputs={decisionInputs}

@@ -67,6 +67,10 @@ export function getAllBookingsForAdmin(status, requesterId) {
   return request(`/api/bookings/admin${query ? `?${query}` : ''}`)
 }
 
+export function getAdminBookingAnalytics() {
+  return request('/api/bookings/admin/analytics')
+}
+
 export function approveBooking(bookingId, user, reason) {
   return request(`/api/bookings/admin/${bookingId}/approve`, {
     method: 'PATCH',

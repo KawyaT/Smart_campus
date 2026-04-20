@@ -5,14 +5,21 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.smartcampus.dto.request.booking.BookingCreateRequest;
 import com.smartcampus.dto.request.booking.BookingUpdateRequest;
+import com.smartcampus.dto.response.booking.BookingAnalyticsResponse;
 import com.smartcampus.dto.response.booking.BookingResponse;
+import com.smartcampus.dto.response.booking.BookingUsageCount;
 import com.smartcampus.model.booking.Booking;
 import com.smartcampus.model.booking.BookingStatus;
 import com.smartcampus.repository.booking.BookingRepository;
@@ -27,6 +34,9 @@ public class BookingService {
         BookingStatus.PENDING,
         BookingStatus.APPROVED
     );
+
+    private static final int TOP_RESOURCE_LIMIT = 5;
+    private static final int TOP_HOUR_LIMIT = 6;
 
     private final BookingRepository bookingRepository;
 
@@ -130,6 +140,40 @@ public class BookingService {
         return stream.map(this::toResponse).toList();
     }
 
+    public BookingAnalyticsResponse getAdminAnalytics() {
+        List<Booking> trackedBookings = bookingRepository.findAll().stream()
+            .filter(booking -> ACTIVE_BOOKING_STATUSES.contains(booking.getStatus()))
+            .toList();
+
+        List<BookingUsageCount> topResources = trackedBookings.stream()
+            .collect(Collectors.groupingBy(
+                booking -> normalizeResourceLabel(booking.getResourceName(), booking.getResourceId()),
+                Collectors.counting()
+            ))
+            .entrySet()
+            .stream()
+            .sorted(byCountDescThenLabel())
+            .limit(TOP_RESOURCE_LIMIT)
+            .map(entry -> new BookingUsageCount(entry.getKey(), entry.getValue()))
+            .toList();
+
+        Map<String, Long> hourlyCounts = trackedBookings.stream()
+            .collect(Collectors.groupingBy(
+                booking -> formatHourSlot(booking.getStartTime()),
+                LinkedHashMap::new,
+                Collectors.counting()
+            ));
+
+        List<BookingUsageCount> peakBookingHours = hourlyCounts.entrySet()
+            .stream()
+            .sorted(byCountDescThenLabel())
+            .limit(TOP_HOUR_LIMIT)
+            .map(entry -> new BookingUsageCount(entry.getKey(), entry.getValue()))
+            .toList();
+
+        return new BookingAnalyticsResponse(trackedBookings.size(), topResources, peakBookingHours);
+    }
+
     public BookingResponse reviewBooking(
         String bookingId,
         BookingStatus decision,
@@ -212,6 +256,31 @@ public class BookingService {
 
     private String normalizeOptional(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String normalizeResourceLabel(String resourceName, String resourceId) {
+        if (StringUtils.hasText(resourceName)) {
+            return resourceName.trim();
+        }
+        if (StringUtils.hasText(resourceId)) {
+            return resourceId.trim();
+        }
+        return "Unknown Resource";
+    }
+
+    private String formatHourSlot(LocalTime startTime) {
+        if (startTime == null) {
+            return "Unknown Hour";
+        }
+        int hour = startTime.getHour();
+        return String.format("%02d:00-%02d:00", hour, (hour + 1) % 24);
+    }
+
+    private Comparator<Map.Entry<String, Long>> byCountDescThenLabel() {
+        return Comparator
+            .comparing((Function<Map.Entry<String, Long>, Long>) Map.Entry::getValue)
+            .reversed()
+            .thenComparing(Map.Entry::getKey);
     }
 
     private BookingResponse toResponse(Booking booking) {

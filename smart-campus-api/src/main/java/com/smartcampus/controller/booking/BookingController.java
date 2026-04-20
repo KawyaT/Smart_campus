@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.smartcampus.dto.request.booking.BookingDecisionRequest;
 import com.smartcampus.dto.request.booking.BookingCreateRequest;
 import com.smartcampus.dto.request.booking.BookingUpdateRequest;
+import com.smartcampus.dto.response.booking.BookingAnalyticsResponse;
 import com.smartcampus.dto.response.booking.BookingResponse;
 import com.smartcampus.model.booking.BookingStatus;
 import com.smartcampus.service.booking.BookingService;
@@ -83,6 +84,11 @@ public class BookingController {
         @RequestParam(required = false) String requesterId
     ) {
         return ResponseEntity.ok(bookingService.getAllBookings(status, requesterId));
+    }
+
+    @GetMapping("/admin/analytics")
+    public ResponseEntity<BookingAnalyticsResponse> getAdminBookingAnalytics() {
+        return ResponseEntity.ok(bookingService.getAdminAnalytics());
     }
 
     @PatchMapping("/admin/{bookingId}/approve")

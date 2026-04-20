@@ -1,6 +1,8 @@
 export default function BookingAdminPage({
   isLoadingBookings,
   sortedBookings,
+  analytics,
+  isLoadingAnalytics,
   statusFilter,
   requesterFilter,
   decisionInputs,
@@ -12,9 +14,73 @@ export default function BookingAdminPage({
   error,
   success,
 }) {
+  const resourceMax = Math.max(...analytics.topResources.map((item) => item.count), 1)
+  const hourMax = Math.max(...analytics.peakBookingHours.map((item) => item.count), 1)
+
   return (
     <>
       <div className="booking-content admin-layout">
+        <article className="card reveal analytics-card">
+          <div className="table-head">
+            <h2>Usage Analytics</h2>
+            <span className="analytics-total">Tracked: {analytics.totalTrackedBookings}</span>
+          </div>
+
+          {isLoadingAnalytics ? <p className="empty">Loading analytics...</p> : null}
+
+          {!isLoadingAnalytics ? (
+            <div className="analytics-grid">
+              <section>
+                <h3 className="analytics-title">Top Resources</h3>
+                {analytics.topResources.length === 0 ? (
+                  <p className="empty">No resource usage data.</p>
+                ) : (
+                  <div className="analytics-list">
+                    {analytics.topResources.map((item) => (
+                      <div key={`resource-${item.label}`} className="analytics-row">
+                        <div className="analytics-row-head">
+                          <span>{item.label}</span>
+                          <strong>{item.count}</strong>
+                        </div>
+                        <div className="analytics-bar-track">
+                          <div
+                            className="analytics-bar-fill"
+                            style={{ width: `${Math.max(8, (item.count / resourceMax) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section>
+                <h3 className="analytics-title">Peak Booking Hours</h3>
+                {analytics.peakBookingHours.length === 0 ? (
+                  <p className="empty">No hourly booking data.</p>
+                ) : (
+                  <div className="analytics-list">
+                    {analytics.peakBookingHours.map((item) => (
+                      <div key={`hour-${item.label}`} className="analytics-row">
+                        <div className="analytics-row-head">
+                          <span>{item.label}</span>
+                          <strong>{item.count}</strong>
+                        </div>
+                        <div className="analytics-bar-track">
+                          <div
+                            className="analytics-bar-fill hour"
+                            style={{ width: `${Math.max(8, (item.count / hourMax) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          ) : null}
+        </article>
+
         <article className="card reveal delay-1">
           <div className="table-head">
             <h2>All Bookings</h2>
