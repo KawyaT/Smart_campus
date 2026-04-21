@@ -1,0 +1,57 @@
+/* OAuthSuccess.jsx */
+
+.oauth-success-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #f3f4f6;
+  color: #0f172a;
+}
+
+.oauth-success-page .oauth-success-card {
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+.oauth-success-page .oauth-success-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 1.25rem;
+  border: 2px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: oauth-spin 0.75s linear infinite;
+}
+
+.oauth-success-page .oauth-success-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.oauth-success-page .oauth-success-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+@keyframes oauth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

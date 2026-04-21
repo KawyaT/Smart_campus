@@ -29,10 +29,10 @@ export const authAPI = {
     }
   },
 
-  /** Update display name (Bearer). */
-  updateProfile: async ({ name }) => {
+  /** Update display name, phone, and address (Bearer). */
+  updateProfile: async ({ name, phone, address }) => {
     try {
-      const { data } = await apiClient.patch('/auth/profile', { name });
+      const { data } = await apiClient.patch('/auth/profile', { name, phone, address });
       return data;
     } catch (error) {
       const d = error.response?.data;

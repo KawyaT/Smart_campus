@@ -4,6 +4,7 @@ import com.smartcampus.model.AuthProvider;
 import com.smartcampus.model.Role;
 import com.smartcampus.model.User;
 import com.smartcampus.security.JwtService;
+import com.smartcampus.exception.UserNotFoundException;
 import com.smartcampus.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -59,17 +61,12 @@ public class AuthController {
             }
             
             String token = jwtService.generateToken(user);
-            return ResponseEntity.ok(Map.of(
-                "message", "Login successful",
-                "success", true,
-                "token", token,
-                "user", Map.of(
-                    "id", user.getId(),
-                    "email", user.getEmail(),
-                    "name", user.getName(),
-                    "role", user.getRole().getName()
-                )
-            ));
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("message", "Login successful");
+            body.put("success", true);
+            body.put("token", token);
+            body.put("user", toUserMap(user));
+            return ResponseEntity.ok(body);
         } catch (Exception e) {
             log.error("Login failed for user: {}", email, e);
             return ResponseEntity.badRequest().body(Map.of(
@@ -84,10 +81,25 @@ public class AuthController {
         String name = (String) signupRequest.get("name");
         String email = (String) signupRequest.get("email");
         String password = (String) signupRequest.get("password");
-        
+        String phone = readTrimmedString(signupRequest, "phone");
+        String address = readTrimmedString(signupRequest, "address");
+
         log.info("Registration attempt for user: {}", email);
-        
+
         try {
+            if (phone == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "message", "Contact number is required",
+                        "success", false
+                ));
+            }
+            if (address == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "message", "Address is required",
+                        "success", false
+                ));
+            }
+
             if (userService.existsByEmail(email)) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "message", "Email already exists",
@@ -102,20 +114,17 @@ public class AuthController {
                     .password(passwordEncoder.encode(password))
                     .role(Role.USER)
                     .authProvider(AuthProvider.LOCAL)
+                    .phone(phone)
+                    .address(address)
                     .build();
             
             User savedUser = userService.createUser(user);
-            
-            return ResponseEntity.ok(Map.of(
-                "message", "Registration successful",
-                "success", true,
-                "user", Map.of(
-                    "id", savedUser.getId(),
-                    "email", savedUser.getEmail(),
-                    "name", savedUser.getName(),
-                    "role", savedUser.getRole().getName()
-                )
-            ));
+
+            Map<String, Object> ok = new LinkedHashMap<>();
+            ok.put("message", "Registration successful");
+            ok.put("success", true);
+            ok.put("user", toUserMap(savedUser));
+            return ResponseEntity.ok(ok);
         } catch (Exception e) {
             log.error("Registration failed for user: {}", email, e);
             return ResponseEntity.badRequest().body(Map.of(
@@ -138,16 +147,7 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
         return userService.findByEmail(email)
-                .map(user -> {
-                    String provider = user.getAuthProvider() != null ? user.getAuthProvider().name() : "LOCAL";
-                    return ResponseEntity.ok(Map.<String, Object>of(
-                            "id", user.getId(),
-                            "email", user.getEmail(),
-                            "name", user.getName(),
-                            "role", user.getRole().getName(),
-                            "authProvider", provider
-                    ));
-                })
+                .map(user -> ResponseEntity.ok(toUserMap(user)))
                 .orElseGet(() -> ResponseEntity.status(401).build());
     }
 
@@ -159,19 +159,25 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
         String email = authentication.getName();
-        String name = body != null ? body.get("name") : null;
         try {
-            User updated = userService.updateNameForEmail(email, name);
-            String provider = updated.getAuthProvider() != null ? updated.getAuthProvider().name() : "LOCAL";
-            return ResponseEntity.ok(Map.<String, Object>of(
-                    "id", updated.getId(),
-                    "email", updated.getEmail(),
-                    "name", updated.getName(),
-                    "role", updated.getRole().getName(),
-                    "authProvider", provider
-            ));
+            User existing = userService.findByEmail(email)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+            String newName = body != null ? body.get("name") : null;
+            if (newName == null || newName.isBlank()) {
+                newName = existing.getName();
+            }
+            String phoneRaw = body != null && body.containsKey("phone")
+                    ? body.get("phone")
+                    : existing.getPhone();
+            String addressRaw = body != null && body.containsKey("address")
+                    ? body.get("address")
+                    : existing.getAddress();
+            User updated = userService.updateProfileForEmail(email, newName, phoneRaw, addressRaw);
+            return ResponseEntity.ok(toUserMap(updated));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(401).build();
         }
     }
 
@@ -192,5 +198,36 @@ public class AuthController {
         }
         String email = authentication.getName();
         return email != null && !email.isBlank() && !"anonymousUser".equalsIgnoreCase(email);
+    }
+
+    private static Map<String, Object> toUserMap(User user) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", user.getId());
+        m.put("email", user.getEmail());
+        m.put("name", user.getName());
+        m.put("role", user.getRole().getName());
+        m.put("authProvider", user.getAuthProvider() != null ? user.getAuthProvider().name() : "LOCAL");
+        m.put("phone", user.getPhone());
+        m.put("address", user.getAddress());
+        return m;
+    }
+
+    private static String readTrimmedString(Map<String, Object> map, String key) {
+        if (map == null) {
+            return null;
+        }
+        Object v = map.get(key);
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof Number n) {
+            long lv = n.longValue();
+            if (lv < 0) {
+                return null;
+            }
+            return Long.toString(lv);
+        }
+        String s = v.toString().trim();
+        return s.isEmpty() ? null : s;
     }
 }

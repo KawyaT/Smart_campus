@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../api/users';
 import logo from '../assets/logo.png';
@@ -92,6 +92,8 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -113,6 +115,24 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+    const onDocMouseDown = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setUserMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [userMenuOpen]);
 
   const registeredCount = users.length;
 
@@ -240,18 +260,51 @@ const AdminDashboard = () => {
           <img src={logo} alt="SmartUNI" className="dash-brand-logo" />
         </div>
         <div className="dash-topbar-actions">
-          <div className="dash-user" title={user?.email}>
-            <span className="dash-avatar dash-avatar--admin" aria-hidden>
-              {initials(user?.name || user?.email || 'A')}
-            </span>
-            <div className="dash-user-meta">
-              <span className="dash-user-name">{user?.name || 'Admin'}</span>
-              <span className="dash-role">ADMIN</span>
-            </div>
+          <div className="admin-user-menu" ref={userMenuRef}>
+            <button
+              type="button"
+              className="dash-user admin-user-menu-trigger"
+              title={user?.email}
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
+              aria-controls="admin-user-menu-panel"
+              id="admin-user-menu-button"
+              onClick={() => setUserMenuOpen((o) => !o)}
+            >
+              <span className="dash-avatar dash-avatar--admin" aria-hidden>
+                {initials(user?.name || user?.email || 'A')}
+              </span>
+              <span className="dash-user-meta">
+                <span className="dash-user-name">{user?.name || 'Admin'}</span>
+                <span className="dash-role">ADMIN</span>
+              </span>
+              <span className="admin-user-menu-chevron" aria-hidden>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </button>
+            {userMenuOpen ? (
+              <div
+                id="admin-user-menu-panel"
+                className="admin-user-menu-dropdown"
+                role="menu"
+                aria-labelledby="admin-user-menu-button"
+              >
+                <button
+                  type="button"
+                  className="admin-user-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    logout();
+                  }}
+                >
+                  Log out
+                </button>
+              </div>
+            ) : null}
           </div>
-          <button type="button" className="dash-btn-logout" onClick={logout}>
-            Log out
-          </button>
         </div>
       </header>
 

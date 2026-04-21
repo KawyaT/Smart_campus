@@ -1,8 +1,22 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../api/auth';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
+
+/** Normalize API user payload for client state (null-safe). */
+function mapApiUser(me) {
+  if (!me || typeof me !== 'object') return null;
+  return {
+    id: me.id,
+    email: me.email,
+    name: me.name,
+    role: me.role,
+    authProvider: me.authProvider ?? 'LOCAL',
+    phone: me.phone ?? '',
+    address: me.address ?? '',
+  };
+}
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
@@ -23,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
+      setUser(mapApiUser(JSON.parse(storedUser)));
     } else if (storedUser || token) {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
@@ -39,8 +53,9 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login(credentials);
       
       if (response.success) {
-        setUser(response.user);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        const u = mapApiUser(response.user);
+        setUser(u);
+        localStorage.setItem('user', JSON.stringify(u));
         if (response.token) {
           localStorage.setItem('token', response.token);
         }
@@ -97,16 +112,11 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
-  const updateProfile = async ({ name }) => {
+  const updateProfile = async ({ name, phone, address }) => {
     try {
       setError(null);
-      const me = await authAPI.updateProfile({ name });
-      const u = {
-        id: me.id,
-        email: me.email,
-        name: me.name,
-        role: me.role,
-      };
+      const me = await authAPI.updateProfile({ name, phone, address });
+      const u = mapApiUser(me);
       setUser(u);
       localStorage.setItem('user', JSON.stringify(u));
       toast.success('Profile updated');
@@ -118,6 +128,23 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: msg };
     }
   };
+
+  /** Refresh user from GET /auth/me (e.g. after deploy or opening profile). */
+  const syncUserFromServer = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return { success: false };
+    try {
+      const me = await authAPI.getMe();
+      const u = mapApiUser(me);
+      if (u) {
+        setUser(u);
+        localStorage.setItem('user', JSON.stringify(u));
+      }
+      return { success: true };
+    } catch {
+      return { success: false };
+    }
+  }, []);
 
   const deleteAccount = async () => {
     try {
@@ -143,12 +170,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       localStorage.setItem('token', token);
       const me = await authAPI.getMe();
-      const u = {
-        id: me.id,
-        email: me.email,
-        name: me.name,
-        role: me.role,
-      };
+      const u = mapApiUser(me);
       setUser(u);
       localStorage.setItem('user', JSON.stringify(u));
       toast.success('Signed in with Google');
@@ -177,6 +199,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     clearError,
     completeGoogleSignIn,
+    syncUserFromServer,
     updateProfile,
     deleteAccount,
     isAuthenticated: !!user,

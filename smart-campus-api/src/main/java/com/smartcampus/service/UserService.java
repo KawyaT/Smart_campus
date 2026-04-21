@@ -26,6 +26,12 @@ public class UserService {
         if (user.getAuthProvider() == null) {
             user.setAuthProvider(AuthProvider.LOCAL);
         }
+        if (user.getPhone() != null) {
+            user.setPhone(normalizePhoneOrThrow(user.getPhone()));
+        }
+        if (user.getAddress() != null) {
+            user.setAddress(normalizeAddressOrThrow(user.getAddress()));
+        }
         return userRepository.save(user);
     }
 
@@ -96,14 +102,65 @@ public class UserService {
         return userRepository.existsByEmail(email);
     }
 
-    public User updateNameForEmail(String email, String newName) {
+    /**
+     * Updates display name, phone, and address for the authenticated user.
+     * Phone: blank clears; otherwise exactly 10 digits. Address: trimmed, max 500 chars; blank clears.
+     */
+    public User updateProfileForEmail(String email, String newName, String phoneRaw, String addressRaw) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         if (newName == null || newName.isBlank()) {
             throw new IllegalArgumentException("Name is required");
         }
         user.setName(newName.trim());
+        user.setPhone(normalizePhoneOrNull(phoneRaw));
+        user.setAddress(normalizeAddressOrNull(addressRaw));
         return userRepository.save(user);
+    }
+
+    private static String normalizePhoneOrThrow(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("Phone is required");
+        }
+        return normalizePhoneOrNull(raw);
+    }
+
+    private static String normalizePhoneOrNull(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String compact = raw.trim().replaceAll("\\s+", "");
+        if (compact.isEmpty()) {
+            return null;
+        }
+        if (compact.chars().anyMatch(c -> !Character.isDigit(c))) {
+            throw new IllegalArgumentException("Phone must contain digits only (no minus or other characters)");
+        }
+        if (compact.length() != 10) {
+            throw new IllegalArgumentException("Phone must be exactly 10 digits");
+        }
+        return compact;
+    }
+
+    private static String normalizeAddressOrThrow(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("Address is required");
+        }
+        return normalizeAddressOrNull(raw);
+    }
+
+    private static String normalizeAddressOrNull(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String t = raw.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        if (t.length() > 500) {
+            throw new IllegalArgumentException("Address must be at most 500 characters");
+        }
+        return t;
     }
 
     public void deleteAccountByEmail(String email) {

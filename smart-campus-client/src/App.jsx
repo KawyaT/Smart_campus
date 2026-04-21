@@ -8,7 +8,11 @@ import Register from './components/Register';
 import OAuthSuccess from './components/OAuthSuccess';
 import Dashboard from './components/Dashboard';
 import AdminDashboard from './components/AdminDashboard';
-import UserDashboard from './components/UserDashboard';
+import UserDashboardLayout from './components/UserDashboardLayout';
+import UserDashboardHome from './pages/user/UserDashboardHome';
+import BookResourcePage from './pages/user/BookResourcePage';
+import MyBookingsPage from './pages/user/MyBookingsPage';
+import ReportIssuePage from './pages/user/ReportIssuePage';
 import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
 import TicketDashboard from "./pages/tickets/TicketDashboard";
 import BookingManagementPage from './pages/bookings/BookingManagementPage';
@@ -201,10 +205,15 @@ function App() {
               path="/user-dashboard"
               element={
                 <UserDashboardRoute>
-                  <UserDashboard />
+                  <UserDashboardLayout />
                 </UserDashboardRoute>
               }
-            />
+            >
+              <Route index element={<UserDashboardHome />} />
+              <Route path="book-resource" element={<BookResourcePage />} />
+              <Route path="my-bookings" element={<MyBookingsPage />} />
+              <Route path="report-issue" element={<ReportIssuePage />} />
+            </Route>
 
             <Route
               path="/dashboard"

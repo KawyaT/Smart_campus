@@ -1,11 +1,11 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import UserDashboard from './UserDashboard';
 import AdminDashboard from './AdminDashboard';
 
 /**
  * Routes to role-specific dashboard UI. ADMIN sees the administration console;
- * USER and TECHNICIAN see the standard campus dashboard.
+ * USER and TECHNICIAN use `/user-dashboard` (layout + nested routes).
  */
 const Dashboard = () => {
   const { user } = useAuth();
@@ -14,7 +14,7 @@ const Dashboard = () => {
     return <AdminDashboard />;
   }
 
-  return <UserDashboard />;
+  return <Navigate to="/user-dashboard" replace />;
 };
 
 export default Dashboard;

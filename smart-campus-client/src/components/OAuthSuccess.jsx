@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { normalizeJwtFromUrl, parseOAuthTokenFromWindow } from '../utils/oauthToken';
-import './AuthPages.css';
+import './OAuthSuccess.css';
 
 /** Backend redirects here: /oauth-success?token=... (see OAuth2LoginSuccessHandler). */
 const OAuthSuccess = () => {
@@ -45,11 +45,11 @@ const OAuthSuccess = () => {
   }, [completeGoogleSignIn, navigate, searchParams]);
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <p className="auth-subtitle" style={{ textAlign: 'center', margin: 0 }}>
-          Completing sign-in…
-        </p>
+    <div className="oauth-success-page">
+      <div className="oauth-success-card">
+        <div className="oauth-success-spinner" aria-hidden />
+        <p className="oauth-success-title">Completing sign-in…</p>
+        <p className="oauth-success-hint">SmartUni is finishing your Google sign-in.</p>
       </div>
     </div>
   );

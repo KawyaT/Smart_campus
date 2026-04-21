@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_ORIGIN } from '../api/client';
-import './AuthPages.css';
+import './Register.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +10,8 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    phone: '',
+    address: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
@@ -19,17 +21,39 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === 'phone') {
+      const digits = value.replace(/\D/g, '').slice(0, 10);
+      setFormData((prev) => ({ ...prev, phone: digits }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
     if (error) clearError();
     if (formError) setFormError('');
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword ||
+      !formData.phone ||
+      !formData.address.trim()
+    ) {
       setFormError('All fields are required');
+      return false;
+    }
+
+    if (formData.phone.length !== 10) {
+      setFormError('Contact number must be exactly 10 digits');
+      return false;
+    }
+
+    if (formData.address.trim().length > 500) {
+      setFormError('Address must be at most 500 characters');
       return false;
     }
 
@@ -66,6 +90,8 @@ const Register = () => {
       name: formData.name,
       email: formData.email,
       password: formData.password,
+      phone: formData.phone,
+      address: formData.address.trim(),
     });
     setIsSubmitting(false);
 
@@ -78,11 +104,11 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-page">
+    <div className="register-page">
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">Create account</h1>
-          <p className="auth-subtitle">Sign up to get started with SmartUni</p>
+          <p className="auth-subtitle">Sign up to continue to SmartUni</p>
         </div>
 
         {(error || formError) && (
@@ -121,11 +147,13 @@ const Register = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Sign up with Google
+            Continue with Google
           </button>
-          <p className="auth-divider">
-            <span>or register with email</span>
-          </p>
+          <div className="auth-divider" role="separator" aria-orientation="horizontal">
+            <span className="auth-divider-line" aria-hidden />
+            <span className="auth-divider-text">or register with email</span>
+            <span className="auth-divider-line" aria-hidden />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -145,6 +173,52 @@ const Register = () => {
                 required
                 disabled={loading || isSubmitting}
                 className="auth-input"
+              />
+            </div>
+          </div>
+
+          <div className="auth-field">
+            <label htmlFor="phone">Contact number</label>
+            <div className="auth-input-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" className="auth-input-icon" fill="none" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                />
+              </svg>
+              <input
+                id="phone"
+                type="text"
+                name="phone"
+                inputMode="numeric"
+                autoComplete="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="10 digits only"
+                required
+                disabled={loading || isSubmitting}
+                className="auth-input"
+                maxLength={10}
+              />
+            </div>
+          </div>
+
+          <div className="auth-field">
+            <label htmlFor="address">Address</label>
+            <div className="auth-input-wrap auth-input-wrap--textarea">
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Campus or mailing address"
+                required
+                disabled={loading || isSubmitting}
+                className="auth-input auth-textarea"
+                rows={3}
+                maxLength={500}
               />
             </div>
           </div>
@@ -210,11 +284,7 @@ const Register = () => {
           </div>
 
           <button type="submit" className="auth-submit" disabled={loading || isSubmitting}>
-            {isSubmitting ? (
-              <span>Creating account...</span>
-            ) : (
-              'Create account'
-            )}
+            {isSubmitting ? <span className="auth-submit-inner">Creating account…</span> : 'Create account'}
           </button>
         </form>
 

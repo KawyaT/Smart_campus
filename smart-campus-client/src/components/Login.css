@@ -1,0 +1,331 @@
+/* Login.jsx — scoped so global / DaisyUI rules do not break this screen */
+
+.login-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #f3f4f6;
+  color: #0f172a;
+}
+
+.login-page *,
+.login-page *::before,
+.login-page *::after {
+  box-sizing: border-box;
+}
+
+.login-page .auth-card {
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 640px) {
+  .login-page .auth-card {
+    padding: 2.5rem;
+  }
+}
+
+.login-page .auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-page .auth-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+}
+
+.login-page .auth-subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.login-page .auth-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #14532d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.5rem;
+}
+
+.login-page .auth-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+}
+
+.login-page .auth-error .auth-input-icon,
+.login-page .auth-success .auth-input-icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.login-page .auth-success .auth-input-icon path {
+  stroke: #16a34a;
+}
+
+.login-page .auth-error .auth-input-icon path {
+  stroke: #dc2626;
+}
+
+.login-page .auth-google-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.login-page .auth-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.login-page .auth-google-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  box-shadow: none;
+}
+
+.login-page .auth-google-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.login-page .auth-google-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.login-page .auth-google-btn:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.login-page .auth-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.login-page .auth-google-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.login-page .auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+}
+
+.login-page .auth-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.login-page .auth-divider-text {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.login-page .auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login-page .auth-field label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.login-page .auth-input-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0 0.875rem;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+/* Border-only focus — avoids fighting Chrome autofill’s inset box-shadow on the input */
+.login-page .auth-input-wrap:focus-within {
+  border-color: #2563eb;
+  box-shadow: none;
+}
+
+.login-page .auth-input-wrap .auth-input-icon {
+  flex-shrink: 0;
+  align-self: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #2563eb;
+}
+
+.login-page .auth-input-wrap .auth-input-icon path {
+  stroke: #2563eb;
+}
+
+.login-page .auth-input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #0f172a;
+  background: transparent;
+  background-clip: padding-box;
+  border: none;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+}
+
+/* Chrome / Edge autofill — fill field without a second “ring” that clips the wrapper border */
+.login-page .auth-input:-webkit-autofill,
+.login-page .auth-input:-webkit-autofill:hover,
+.login-page .auth-input:-webkit-autofill:focus,
+.login-page .auth-input:-webkit-autofill:active {
+  -webkit-box-shadow: inset 0 0 0 1000px #fff;
+  box-shadow: inset 0 0 0 1000px #fff;
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  transition: background-color 99999s ease-out 0s;
+}
+
+.login-page .auth-input:-moz-autofill {
+  background-color: #fff;
+  color: #0f172a;
+}
+
+.login-page .auth-input::placeholder {
+  font-style: italic;
+  color: #9ca3af;
+}
+
+.login-page .auth-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.login-page .auth-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 3rem;
+  margin-top: 0.25rem;
+  padding: 0 1rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff !important;
+  background: #2563eb !important;
+  border: none !important;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.login-page .auth-submit:hover:not(:disabled) {
+  background: #1d4ed8 !important;
+}
+
+.login-page .auth-submit:disabled {
+  background: #93c5fd !important;
+  cursor: not-allowed;
+}
+
+.login-page .auth-submit-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.login-page .auth-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.login-page .auth-footer p {
+  margin: 0;
+}
+
+.login-page .auth-link {
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.login-page .auth-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
