@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import ResourceCard from './ResourceCard';
 import ResourceFilters from './ResourceFilters';
 import ResourceFormModal from './ResourceFormModal';
-import Sidebar from '../../components/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getColors } from '../../theme/colors';
@@ -98,7 +97,6 @@ export default function ResourcesPage() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: c.pageBg }}>
-      <Sidebar />
 
       <div style={{ flex: 1, padding: '28px 32px 48px', marginLeft: '220px', minWidth: '0', overflow: 'hidden' }}>
 
@@ -113,7 +111,7 @@ export default function ResourcesPage() {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Role switcher */}
+            {/* Role switcher 
             <div style={{ display: 'flex', background: isDark ? '#1a2740' : '#e2e8f0', borderRadius: '8px', padding: '3px', gap: '2px' }}>
               {['USER', 'ADMIN'].map(r => (
                 <button key={r} onClick={() => setRole(r)} style={{
@@ -135,7 +133,7 @@ export default function ResourcesPage() {
               }}>
                 <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> Add resource
               </button>
-            )}
+            )}*/}
           </div>
         </div>
 

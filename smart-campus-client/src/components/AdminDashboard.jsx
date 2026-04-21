@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../api/users';
 import logo from '../assets/logo.png';
 import AdminUserManagementPanel from './AdminUserManagementPanel';
+import AdminFacilitiesPanel from './AdminFacilitiesPanel';
 import './DashboardShell.css';
 import './AdminDashboard.css';
 
@@ -163,6 +164,9 @@ const AdminDashboard = () => {
           currentUserId={user?.id}
         />
       );
+    }
+    if (activeNav === 'facilities') {
+      return <AdminFacilitiesPanel />;
     }
     if (activeNav === 'overview') {
       return (

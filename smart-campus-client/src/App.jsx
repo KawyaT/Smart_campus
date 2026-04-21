@@ -214,7 +214,7 @@ function App() {
               }
             >
               <Route index element={<UserDashboardHome />} />
-              <Route path="book-resource" element={<BookResourcePage />} />
+              <Route path="book-resource" element={<ResourcesPage />} />
               <Route path="my-bookings" element={<MyBookingsPage />} />
               <Route path="report-issue" element={<ReportIssuePage />} />
             </Route>
