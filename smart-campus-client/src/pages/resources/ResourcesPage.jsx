@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ResourceCard from './ResourceCard';
 import ResourceFilters from './ResourceFilters';
 import ResourceFormModal from './ResourceFormModal';
+import ResourceDetailModal from './ResourceDetailModal';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getColors } from '../../theme/colors';
@@ -21,6 +22,7 @@ export default function ResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
+  const [viewingResource, setViewingResource] = useState(null);
 
   const fetchResources = async (f = {}) => {
     setLoading(true);
@@ -74,6 +76,14 @@ export default function ResourcesPage() {
     setShowModal(true);
   };
 
+  const handleView = (resource) => {
+    setViewingResource(resource);
+  };
+
+  const handleCloseDetail = () => {
+    setViewingResource(null);
+  };
+
   const filtered = resources.filter(r => {
     if (!filters.search) return true;
     const s = filters.search.toLowerCase();
@@ -111,29 +121,6 @@ export default function ResourcesPage() {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Role switcher 
-            <div style={{ display: 'flex', background: isDark ? '#1a2740' : '#e2e8f0', borderRadius: '8px', padding: '3px', gap: '2px' }}>
-              {['USER', 'ADMIN'].map(r => (
-                <button key={r} onClick={() => setRole(r)} style={{
-                  padding: '5px 14px', borderRadius: '6px', fontSize: '12px',
-                  cursor: 'pointer', border: 'none',
-                  background: role === r ? c.accent : 'transparent',
-                  color: role === r ? '#fff' : c.textSecondary,
-                }}>
-                  {r === 'USER' ? 'User' : 'Admin'}
-                </button>
-              ))}
-            </div>
-            {isAdmin && (
-              <button onClick={() => { setEditingResource(null); setShowModal(true); }} style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                background: c.accent, color: '#fff', border: 'none',
-                padding: '9px 18px', borderRadius: '9px',
-                fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-              }}>
-                <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> Add resource
-              </button>
-            )}*/}
           </div>
         </div>
 
@@ -176,7 +163,14 @@ export default function ResourcesPage() {
             gap: '16px',
           }}>
             {filtered.map(r => (
-              <ResourceCard key={r.id} resource={r} isAdmin={isAdmin} onEdit={handleEdit} onDelete={handleDelete} />
+              <ResourceCard
+                key={r.id}
+                resource={r}
+                isAdmin={isAdmin}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onView={handleView}
+              />
             ))}
           </div>
         )}
@@ -187,6 +181,15 @@ export default function ResourcesPage() {
           resource={editingResource}
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditingResource(null); }}
+        />
+      )}
+
+      {viewingResource && (
+        <ResourceDetailModal
+          resource={viewingResource}
+          isAdmin={isAdmin}
+          onClose={handleCloseDetail}
+          onEdit={handleEdit}
         />
       )}
     </div>

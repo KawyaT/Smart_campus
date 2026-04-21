@@ -9,7 +9,7 @@ const typeConfig = {
   EQUIPMENT:    { iconPath: 'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z', label: 'Equipment', key: 'equip' },
 };
 
-export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
+export default function ResourceCard({ resource, isAdmin, onEdit, onDelete, onView }) {
   const { isDark } = useTheme();
   const c = getColors(isDark);
   const cfg = typeConfig[resource.type] || typeConfig.EQUIPMENT;
@@ -21,8 +21,11 @@ export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
       style={{
         background: c.cardBg,
         border: `1px solid ${c.border}`,
-        borderRadius: '14px', overflow: 'hidden',
+        borderRadius: '14px',
+        overflow: 'hidden',
         transition: 'border-color .2s',
+        display: 'flex',
+        flexDirection: 'column',
       }}
       onMouseEnter={e => e.currentTarget.style.borderColor = c.accent}
       onMouseLeave={e => e.currentTarget.style.borderColor = c.border}
@@ -31,13 +34,16 @@ export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
       <div style={{
         height: '90px', background: typeColor.bg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
+        cursor: 'pointer',
+      }}
+        onClick={() => onView(resource)}
+      >
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={typeColor.text} strokeWidth="1.5">
           <path d={cfg.iconPath} />
         </svg>
       </div>
 
-      <div style={{ padding: '14px 16px' }}>
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{
             background: typeColor.bg, color: typeColor.text,
@@ -67,8 +73,7 @@ export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
         <div style={{
           display: 'flex', gap: '14px', fontSize: '12px', color: c.textSecondary,
           padding: '10px 0', borderTop: `1px solid ${c.border}`,
-          borderBottom: isAdmin ? `1px solid ${c.border}` : 'none',
-          marginBottom: isAdmin ? '10px' : 0,
+          marginBottom: '10px',
         }}>
           {resource.capacity && (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -84,10 +89,22 @@ export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
           </span>
         </div>
 
-        {isAdmin && (
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+          <button onClick={() => onView(resource)} style={{
+            flex: 1, padding: '7px', borderRadius: '7px', fontSize: '12px',
+            cursor: 'pointer',
+            background: isDark ? '#0c1f3a' : '#eff6ff',
+            border: `1px solid ${isDark ? '#1a3a5c' : '#bfdbfe'}`,
+            color: isDark ? '#60a5fa' : '#1d4ed8',
+            fontWeight: 500,
+          }}>
+            View details
+          </button>
+
+          {isAdmin && (
+            <>
             <button onClick={() => onEdit(resource)} style={{
-              flex: 1, padding: '7px', borderRadius: '7px', fontSize: '12px',
+              padding: '7px 12px', borderRadius: '7px', fontSize: '12px',
               cursor: 'pointer', background: c.hoverBg,
               border: `1px solid ${c.border}`, color: c.textSecondary,
             }}>
@@ -101,8 +118,9 @@ export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
             }}>
               Delete
             </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

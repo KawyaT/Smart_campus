@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ResourceCard from '../pages/resources/ResourceCard';
 import ResourceFilters from '../pages/resources/ResourceFilters';
 import ResourceFormModal from '../pages/resources/ResourceFormModal';
+import ResourceDetailModal from '../pages/resources/ResourceDetailModal';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { getColors } from '../theme/colors';
@@ -21,6 +22,7 @@ export default function AdminFacilitiesPanel() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
+  const [viewingResource, setViewingResource] = useState(null);
 
   const fetchResources = async (f = {}) => {
     setLoading(true);
@@ -73,6 +75,9 @@ export default function AdminFacilitiesPanel() {
     setEditingResource(resource);
     setShowModal(true);
   };
+
+  const handleView = (resource) => setViewingResource(resource);
+  const handleCloseDetail = () => setViewingResource(null);
 
   const filtered = resources.filter(r => {
     if (!filters.search) return true;
@@ -160,7 +165,14 @@ export default function AdminFacilitiesPanel() {
           gap: '16px',
         }}>
           {filtered.map(r => (
-            <ResourceCard key={r.id} resource={r} isAdmin={isAdmin} onEdit={handleEdit} onDelete={handleDelete} />
+            <ResourceCard
+              key={r.id}
+              resource={r}
+              isAdmin={isAdmin}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
+            />
           ))}
         </div>
       )}
@@ -170,6 +182,15 @@ export default function AdminFacilitiesPanel() {
           resource={editingResource}
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditingResource(null); }}
+        />
+      )}
+
+      {viewingResource && (
+        <ResourceDetailModal
+          resource={viewingResource}
+          isAdmin={isAdmin}
+          onClose={handleCloseDetail}
+          onEdit={handleEdit}
         />
       )}
     </div>

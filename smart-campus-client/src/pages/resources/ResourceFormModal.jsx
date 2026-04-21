@@ -86,10 +86,29 @@ export default function ResourceFormModal({ resource, onSave, onClose }) {
           <h2 style={{ fontSize: '16px', fontWeight: 500, color: c.textPrimary }}>
             {resource ? 'Edit resource' : 'Add new resource'}
           </h2>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', color: c.textMuted,
-            fontSize: '20px', cursor: 'pointer', lineHeight: 1,
-          }}>✕</button>
+          <button
+            onClick={onClose}
+            type="button"
+            aria-label="Close modal"
+            title="Close"
+            style={{
+              width: '32px',
+              height: '32px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: c.inputBg,
+              border: `1px solid ${c.border}`,
+              borderRadius: '8px',
+              color: c.textSecondary,
+              fontSize: '16px',
+              cursor: 'pointer',
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            ✕
+          </button>
         </div>
 
         <label style={labelStyle}>
