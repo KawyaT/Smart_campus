@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Login from './components/Login';
@@ -16,6 +17,7 @@ import ReportIssuePage from './pages/user/ReportIssuePage';
 import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
 import TicketDashboard from "./pages/tickets/TicketDashboard";
 import BookingManagementPage from './pages/bookings/BookingManagementPage';
+import ResourcesPage from './pages/resources/ResourcesPage';
 import TicketsPage from "./pages/tickets/TicketsPage";
 //import BookingsPage from "./pages/bookings/BookingsPage";
 //import SettingsPage from "./pages/notifications/SettingsPage";
@@ -171,10 +173,11 @@ const SimpleBookingsView = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="app" data-theme="smartuni">
-          <ToastContainer position="top-right" autoClose={2500} pauseOnHover theme="light" />
-          <Routes>
+      <ThemeProvider>
+        <Router>
+          <div className="app" data-theme="smartuni">
+            <ToastContainer position="top-right" autoClose={2500} pauseOnHover theme="light" />
+            <Routes>
             <Route
               path="/login"
               element={
@@ -191,6 +194,7 @@ function App() {
                 </PublicRoute>
               }
             />
+            <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/oauth-success" element={<OAuthSuccess />} />
 
             <Route
@@ -246,9 +250,10 @@ function App() {
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </div>
-      </Router>
+            </Routes>
+          </div>
+        </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 }
