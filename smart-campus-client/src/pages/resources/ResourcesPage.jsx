@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import ResourceCard from './ResourceCard';
 import ResourceFilters from './ResourceFilters';
 import ResourceFormModal from './ResourceFormModal';
-import Sidebar from '../../components/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getColors } from '../../theme/colors';
@@ -98,9 +97,7 @@ export default function ResourcesPage() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: c.pageBg }}>
-      <Sidebar />
-
-      <div style={{ flex: 1, padding: '28px 32px 48px', marginLeft: '220px', minWidth: '0', overflow: 'hidden' }}>
+      <div style={{ flex: 1, padding: '28px 32px 48px', minWidth: '0', overflow: 'hidden' }}>
 
         {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
