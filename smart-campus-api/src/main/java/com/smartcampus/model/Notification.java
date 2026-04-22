@@ -34,4 +34,9 @@ public class Notification {
     private boolean read;
 
     private LocalDateTime createdAt;
+
+    /**
+     * Set for each user copy of a campus-wide SYSTEM broadcast so the batch can be deleted in bulk.
+     */
+    private String broadcastBatchId;
 }

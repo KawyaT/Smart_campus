@@ -30,6 +30,8 @@ public class Ticket {
     // Assignments
     private String reporterId;
     private String reporterName;
+    /** Persisted from authenticated reporter at creation; used to resolve display name when legacy reporterId does not match a User row. */
+    private String reporterEmail;
     private String assignedToId;
     private String assignedToName;
     

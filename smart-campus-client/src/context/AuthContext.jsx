@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { authAPI } from '../api/auth';
 import { toast } from 'react-toastify';
 
@@ -32,17 +32,64 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Restore session: need both user profile and JWT
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (storedUser && token) {
-      setUser(mapApiUser(JSON.parse(storedUser)));
-    } else if (storedUser || token) {
+  /**
+   * Restore session from storage before the browser paints so protected routes never see
+   * `loading === false` with no user while valid credentials still exist (fixes refresh → login).
+   */
+  useLayoutEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      if (storedUser && token) {
+        const parsed = JSON.parse(storedUser);
+        const u = mapApiUser(parsed);
+        if (u) {
+          setUser(u);
+        } else {
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          setUser(null);
+        }
+      } else if (storedUser || token) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    } catch {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      setUser(null);
     }
     setLoading(false);
+  }, []);
+
+  /** Refresh profile when online; only drop session on real 401 so API downtime does not log users out on refresh. */
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return undefined;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await authAPI.getMe();
+        if (cancelled) return;
+        const u = mapApiUser(me);
+        if (u) {
+          setUser(u);
+          localStorage.setItem('user', JSON.stringify(u));
+        }
+      } catch (err) {
+        const status = err && typeof err === 'object' ? err.status : undefined;
+        if (cancelled || status !== 401) return;
+        setUser(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Login function
@@ -60,7 +107,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('token', response.token);
         }
         toast.success('Login successful');
-        return { success: true, message: response.message };
+        return { success: true, message: response.message, user: u };
       } else {
         setError(response.message);
         return { success: false, message: response.message };

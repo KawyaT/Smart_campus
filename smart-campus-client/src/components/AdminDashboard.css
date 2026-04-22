@@ -77,6 +77,41 @@
   border-left: 3px solid #2563eb;
 }
 
+/* Overview stat cards: consistent height so counts align across the row */
+.admin-overview-stats .dash-stat--admin {
+  display: flex;
+  flex-direction: column;
+  min-height: 158px;
+}
+
+.admin-overview-stats .dash-stat-label {
+  flex-shrink: 0;
+  min-height: 2.75em;
+  line-height: 1.35;
+  margin-bottom: 0;
+}
+
+.admin-overview-stats .dash-stat-value-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.admin-overview-stats .dash-stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.admin-overview-stats .dash-stat-hint {
+  flex-shrink: 0;
+  margin-top: 0;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
 .admin-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -96,6 +131,10 @@
   font-size: 14px;
   color: #64748b;
   line-height: 1.5;
+}
+
+.admin-panel-lead--queue {
+  max-width: 52rem;
 }
 
 .admin-panel-badge {
@@ -441,6 +480,433 @@
   max-width: 640px;
 }
 
+/* Security alert — campus-wide SYSTEM broadcast */
+.admin-security-alert-card {
+  max-width: 720px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 22px 22px;
+  box-shadow: none;
+}
+
+.admin-security-alert-tip {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  color: #1e3a8a;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-security-alert-tip-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #2563eb;
+}
+
+.admin-security-alert-tip strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-security-alert-tip p {
+  margin: 0;
+  color: #334155;
+}
+
+.admin-security-alert-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-security-alert-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.admin-security-alert-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  resize: vertical;
+  min-height: 140px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-security-alert-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.admin-security-alert-textarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.admin-security-alert-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.admin-security-alert-hint {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.admin-security-alert-count {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: #64748b;
+}
+
+.admin-security-alert-actions {
+  margin-top: 8px;
+}
+
+.admin-security-alert-submit {
+  appearance: none;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: #2563eb;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+
+.admin-security-alert-submit:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.admin-security-alert-submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.admin-security-alert-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-security-alert-result {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #334155;
+}
+
+/* Tab switch-in (matches booking / tickets admin pages) */
+@keyframes adminShellTabIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-main-tab-enter {
+  animation: adminShellTabIn 0.45s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-main-tab-enter {
+    animation: none;
+  }
+}
+
+/* —— Unified shell: same Inter + blue primary as Users / Notices tabs —— */
+.dash--admin .admin-shell-unified,
+.dash--admin .booking-page--admin-shell,
+.dash--admin .tickets-page--admin-shell {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.admin-facilities-shell {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 8px 28px;
+}
+
+.admin-embed-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-embed-toolbar--spread {
+  justify-content: flex-end;
+}
+
+.admin-embed-toolbar-hint {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-embed-primary-btn {
+  appearance: none;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: #2563eb;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+
+.admin-embed-primary-btn:hover {
+  background: #1d4ed8;
+}
+
+.admin-embed-primary-btn:active {
+  transform: scale(0.99);
+}
+
+.admin-notices-compose .admin-users-table-title,
+.admin-notices-history-head .admin-users-table-title {
+  margin-bottom: 14px;
+}
+
+/* —— Notices (admin) —— */
+.admin-notices-page {
+  max-width: 100%;
+}
+
+.admin-notices-hero {
+  background: linear-gradient(130deg, #0c4a6e 0%, #1d4ed8 55%, #3b82f6 100%);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  color: #fff;
+  box-shadow: 0 10px 40px rgba(12, 74, 110, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-notices-hero-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-notices-hero-kicker {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #bae6fd;
+  margin-bottom: 8px;
+}
+
+.admin-notices-hero-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.6rem, 2.6vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.admin-notices-hero-lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #e0f2fe;
+  max-width: 540px;
+}
+
+.admin-notices-hero-accent {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.admin-notices-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.admin-notices-section-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.admin-notices-card {
+  max-width: none;
+}
+
+.admin-notices-compose .admin-security-alert-card {
+  margin: 0;
+}
+
+.admin-notices-history-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admin-notices-history-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.admin-notices-empty {
+  padding: 36px 20px;
+  text-align: center;
+  border-radius: 14px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-notices-empty strong {
+  color: #334155;
+  font-size: 15px;
+}
+
+.admin-notices-empty-icon {
+  color: #cbd5e1;
+  margin-bottom: 4px;
+}
+
+.admin-notices-empty--loading {
+  border-style: solid;
+  border-color: #e2e8f0;
+  background: #fff;
+}
+
+.admin-notices-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-notice-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.15s ease;
+}
+
+.admin-notice-card:hover {
+  border-color: #cbd5e1;
+}
+
+.admin-notice-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-notice-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  margin-bottom: 10px;
+}
+
+.admin-notice-text {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.admin-notice-meta {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.admin-notice-meta-dot {
+  margin: 0 6px;
+}
+
+.admin-notice-delete {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.admin-notice-delete:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.admin-notice-delete:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-notice-delete-busy {
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
 
 @media (max-width: 900px) {
   .admin-shell-body {
@@ -503,6 +969,20 @@
   .admin-main-area.dash-main {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .admin-notices-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-notices-hero-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-users-hero-inner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -636,4 +1116,229 @@
 .dash--admin .admin-user-menu-item:focus-visible {
   outline: none;
   background: #fef2f2;
+}
+
+/* ---------- Admin overview priority queue (card list) ---------- */
+.admin-queue-shell {
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #fafbfc;
+  overflow: hidden;
+}
+
+.admin-queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-queue-list li + li {
+  border-top: 1px solid #e2e8f0;
+}
+
+.admin-queue-card {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border: none;
+  background: #fff;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-queue-card:hover {
+  background: #f8fafc;
+}
+
+.admin-queue-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.admin-queue-card-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #eff6ff, #dbeafe);
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-queue-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.admin-queue-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-queue-card-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-queue-kind {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.admin-queue-priority {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.admin-queue-priority--critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-queue-priority--high {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.admin-queue-priority--medium {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.admin-queue-priority--low {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-queue-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.admin-queue-card-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-queue-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.admin-queue-card-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.admin-queue-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.admin-queue-status-pill--booking {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-queue-status-pill--incident {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.admin-queue-card-chevron {
+  flex-shrink: 0;
+  align-self: center;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+}
+
+.admin-queue-card:hover .admin-queue-card-chevron {
+  color: #2563eb;
+}
+
+.admin-queue-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 24px;
+  text-align: center;
+  color: #64748b;
+  background: #fff;
+}
+
+.admin-queue-empty strong {
+  color: #334155;
+  font-size: 16px;
+}
+
+.admin-queue-empty span:last-of-type {
+  font-size: 13px;
+  max-width: 340px;
+  line-height: 1.45;
+}
+
+.admin-queue-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-queue-empty-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+@media (max-width: 520px) {
+  .admin-queue-card {
+    flex-wrap: wrap;
+  }
+
+  .admin-queue-card-chevron {
+    display: none;
+  }
 }

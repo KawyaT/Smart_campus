@@ -21,21 +21,21 @@
 .dashboard-header h1 {
   margin: 0;
   font-size: 2rem;
-  color: #132a3d;
+  color: #0f172a;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .refresh-btn {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #1f8a70 0%, #155e75 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: white;
   border: none;
   border-radius: 12px;
   cursor: pointer;
   font-weight: 700;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 6px 16px rgba(31, 138, 112, 0.25);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
   letter-spacing: 0.02em;
   display: flex;
   align-items: center;
@@ -49,9 +49,9 @@
 }
 
 .refresh-btn:hover {
-  background: linear-gradient(135deg, #155e75 0%, #0d4d66 100%);
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(31, 138, 112, 0.35);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
 }
 
 .refresh-btn:hover::before {
@@ -66,7 +66,7 @@
   font-weight: 500;
   background: linear-gradient(135deg, #f7faf8 0%, #eef3fa 100%);
   border-radius: 16px;
-  border: 2px dashed rgba(31, 138, 112, 0.15);
+  border: 2px dashed rgba(37, 99, 235, 0.15);
 }
 
 .stats-grid {
@@ -90,7 +90,7 @@
   align-items: center;
   gap: 16px;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(31, 138, 112, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.1);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -114,7 +114,7 @@
 .stat-card:hover {
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
-  border-color: rgba(31, 138, 112, 0.25);
+  border-color: rgba(37, 99, 235, 0.25);
 }
 
 .stat-icon {
@@ -146,7 +146,7 @@
 }
 
 .stat-card.total .stat-value {
-  background: linear-gradient(135deg, #1f8a70 0%, #2f5d9f 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -165,7 +165,7 @@
 }
 
 .stat-card.resolved .stat-value {
-  color: #1f8a70;
+  color: #2563eb;
 }
 
 .dashboard-content {
@@ -185,7 +185,7 @@
   border-radius: 16px;
   padding: 28px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(31, 138, 112, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.1);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   opacity: 0;
@@ -212,14 +212,14 @@
 
 .dashboard-section:hover {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.1);
-  border-color: rgba(31, 138, 112, 0.2);
+  border-color: rgba(37, 99, 235, 0.2);
   transform: translateY(-4px);
 }
 
 .dashboard-section h2 {
   margin: 0 0 20px 0;
   color: #132a3d;
-  border-bottom: 2px solid rgba(31, 138, 112, 0.15);
+  border-bottom: 2px solid rgba(37, 99, 235, 0.15);
   padding-bottom: 16px;
   font-size: 1.3rem;
   font-weight: 800;
@@ -233,8 +233,8 @@
 }
 
 .recent-tickets thead {
-  background: linear-gradient(135deg, rgba(31, 138, 112, 0.08) 0%, rgba(47, 93, 159, 0.05) 100%);
-  border-bottom: 2px solid rgba(31, 138, 112, 0.1);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(47, 93, 159, 0.05) 100%);
+  border-bottom: 2px solid rgba(37, 99, 235, 0.1);
 }
 
 .recent-tickets th {
@@ -255,7 +255,7 @@
   right: 0;
   width: 1px;
   height: 100%;
-  background: rgba(31, 138, 112, 0.1);
+  background: rgba(37, 99, 235, 0.1);
 }
 
 .recent-tickets th:last-child::after {
@@ -264,7 +264,7 @@
 
 .recent-tickets td {
   padding: 16px 12px;
-  border-bottom: 1px solid rgba(31, 138, 112, 0.08);
+  border-bottom: 1px solid rgba(37, 99, 235, 0.08);
   font-size: 0.95rem;
   color: #4a5568;
   transition: all 0.3s ease;
@@ -275,7 +275,7 @@
 }
 
 .recent-tickets tbody tr:hover {
-  background: rgba(31, 138, 112, 0.04);
+  background: rgba(37, 99, 235, 0.04);
 }
 
 .recent-tickets tbody tr:hover td {
@@ -406,3 +406,4 @@
     grid-template-columns: 1fr;
   }
 }
+

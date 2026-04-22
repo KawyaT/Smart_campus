@@ -8,7 +8,9 @@ import com.smartcampus.dto.responce.TicketAnalyticsResponse;
 import com.smartcampus.dto.responce.TicketCommentDTO;
 import com.smartcampus.dto.responce.TicketDetailResponse;
 import com.smartcampus.dto.responce.TicketResponse;
+import com.smartcampus.model.User;
 import com.smartcampus.model.ticket.Ticket;
+import com.smartcampus.service.UserService;
 import com.smartcampus.service.ticket.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,15 +30,18 @@ public class TicketController {
     @Autowired
     private TicketService ticketService;
 
+    @Autowired
+    private UserService userService;
+
     /**
      * Create a new ticket
      */
     @PostMapping
     public ResponseEntity<TicketResponse> createTicket(@Valid @RequestBody CreateTicketRequest request) {
-        // In a real scenario, get userId from authentication context
-        String userId = "user-123"; // TODO: Replace with actual user from auth
-        String userName = "Current User";
-        TicketResponse response = ticketService.createTicket(request, userId, userName);
+        User reporter = userService.requireAuthenticatedUser();
+        String reporterName = UserService.resolveDisplayName(reporter);
+        String reporterEmail = reporter.getEmail();
+        TicketResponse response = ticketService.createTicket(request, reporter.getId(), reporterName, reporterEmail);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

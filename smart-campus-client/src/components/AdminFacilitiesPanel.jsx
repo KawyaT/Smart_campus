@@ -100,73 +100,47 @@ export default function AdminFacilitiesPanel() {
       icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
   ];
 
-  const panelShellStyle = {
-    width: '100%',
-    maxWidth: '1280px',
-    margin: '0 auto',
-    padding: '16px 8px 28px',
-  };
-
   return (
-    <div className="admin-page" style={panelShellStyle}>
-      <header
-        className="admin-page-head"
-        style={{
-          border: `1px solid ${c.border}`,
-          borderRadius: '18px',
-          padding: '24px 24px 20px',
-          marginBottom: '20px',
-          background: isDark
-            ? 'linear-gradient(145deg, rgba(24, 37, 48, 0.95), rgba(17, 26, 34, 0.95))'
-            : 'linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 250, 0.96))',
-          boxShadow: isDark
-            ? '0 12px 30px rgba(0, 0, 0, 0.35)'
-            : '0 14px 34px rgba(15, 23, 42, 0.08)',
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '2rem',
-            letterSpacing: '-0.02em',
-            fontWeight: 800,
-            background: 'linear-gradient(135deg, #155e75 0%, #1f8a70 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          Facilities Management
-        </h1>
-        <p style={{ margin: '12px 0 0', color: '#607585', fontSize: '0.98rem', letterSpacing: '0.01em' }}>
-          Manage campus rooms, labs and equipment
-        </p>
-      </header>
+    <div className="admin-page admin-facilities-shell admin-shell-unified admin-main-tab-enter">
+      <section className="admin-users-hero" aria-labelledby="facilities-hero-title">
+        <div className="admin-users-hero-inner">
+          <div className="admin-users-hero-copy">
+            <span className="admin-users-hero-kicker">Resources</span>
+            <h1 id="facilities-hero-title" className="admin-users-hero-title">
+              Facilities
+            </h1>
+            <p className="admin-users-hero-lead">
+              Manage campus rooms, labs, and equipment in the catalogue.
+            </p>
+          </div>
+          <div className="admin-users-hero-accent" aria-hidden>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="56" height="56">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.25}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
+            </svg>
+          </div>
+        </div>
+      </section>
 
-      {/* Top bar with Add Resource button */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '16px' }}>
-        <div>
-          {/* Empty div for spacing */}
+      {isAdmin ? (
+        <div className="admin-embed-toolbar admin-embed-toolbar--spread">
+          <span className="admin-embed-toolbar-hint" aria-hidden />
+          <button
+            type="button"
+            className="admin-embed-primary-btn"
+            onClick={() => {
+              setEditingResource(null);
+              setShowModal(true);
+            }}
+          >
+            + Add resource
+          </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {isAdmin && (
-            <button onClick={() => { setEditingResource(null); setShowModal(true); }} style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              background: 'linear-gradient(135deg, #1f8a70 0%, #155e75 100%)',
-              color: '#fff',
-              border: 'none',
-              padding: '11px 20px',
-              borderRadius: '11px',
-              fontSize: '13px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 10px 24px rgba(31, 138, 112, 0.25)',
-            }}>
-              <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> Add resource
-            </button>
-          )}
-        </div>
-      </div>
+      ) : null}
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px', marginBottom: '24px' }}>

@@ -4,6 +4,27 @@ import { useAuth } from '../context/AuthContext';
 import { API_ORIGIN } from '../api/client';
 import './Register.css';
 
+const PASSWORD_MIN_LENGTH = 8;
+
+/** Returns null if valid, otherwise a single user-facing error string. */
+function getPasswordValidationError(password) {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return `Password must be at least ${PASSWORD_MIN_LENGTH} characters long.`;
+  }
+
+  const missing = [];
+  if (!/[a-z]/.test(password)) missing.push('a lowercase letter');
+  if (!/[A-Z]/.test(password)) missing.push('an uppercase letter');
+  if (!/[0-9]/.test(password)) missing.push('a number');
+  // Non-alphanumeric, non-whitespace (covers symbols like !@# and _)
+  if (!/[^A-Za-z0-9\s]/.test(password)) missing.push('a symbol (e.g. ! @ # $)');
+
+  if (missing.length === 0) return null;
+  if (missing.length === 1) return `Password must include ${missing[0]}.`;
+  const last = missing.pop();
+  return `Password must include ${missing.join(', ')}, and ${last}.`;
+}
+
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -57,13 +78,14 @@ const Register = () => {
       return false;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setFormError('Passwords do not match');
+    const passwordError = getPasswordValidationError(formData.password);
+    if (passwordError) {
+      setFormError(passwordError);
       return false;
     }
 
-    if (formData.password.length < 6) {
-      setFormError('Password must be at least 6 characters long');
+    if (formData.password !== formData.confirmPassword) {
+      setFormError('Passwords do not match');
       return false;
     }
 
@@ -106,6 +128,17 @@ const Register = () => {
   return (
     <div className="register-page">
       <div className="auth-card">
+        <nav className="login-nav-home" aria-label="Browse">
+          <Link to="/" className="login-home-link">
+            <span className="login-home-link-icon" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+            </span>
+            <span className="login-home-link-text">Back to home</span>
+          </Link>
+        </nav>
         <div className="auth-header">
           <h1 className="auth-title">Create account</h1>
           <p className="auth-subtitle">Sign up to continue to SmartUni</p>
@@ -256,11 +289,16 @@ const Register = () => {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter your password"
+                autoComplete="new-password"
+                aria-describedby="password-hint"
                 required
                 disabled={loading || isSubmitting}
                 className="auth-input"
               />
             </div>
+            <p className="auth-field-hint" id="password-hint">
+              Use at least {PASSWORD_MIN_LENGTH} characters with uppercase, lowercase, a number, and a symbol.
+            </p>
           </div>
 
           <div className="auth-field">

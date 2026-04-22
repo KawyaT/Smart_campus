@@ -3,6 +3,7 @@ import TicketCard from '../../components/TicketCard';
 import TicketForm from '../../components/TicketForm';
 import TicketAPI from '../../api/ticketAPI';
 import { useAuth } from '../../context/AuthContext';
+import { notifyUserDashboardMetricsChanged } from '../../utils/dashboardMetricsEvents';
 import '../../styles/TicketsPage.css';
 
 const FIRST_RESPONSE_TARGET_HOURS = {
@@ -119,7 +120,25 @@ const isOwnedByCurrentUser = (ticket, user, ownershipMap) => {
   return matchesReporterId || matchesName || matchesEmail || ownershipMap[ticket.id] === userKey;
 };
 
-const TicketsPage = ({ scope = 'all' }) => {
+/** API still stores a generic label for new tickets; show the signed-in user's name in details when it's their report. */
+const REPORTER_PLACEHOLDER = /^current\s*user$/i;
+
+const createdByDisplayName = (ticket, user, ownershipMap) => {
+  const stored = typeof ticket?.reporterName === 'string' ? ticket.reporterName.trim() : '';
+  const mine = user && isOwnedByCurrentUser(ticket, user, ownershipMap);
+  const looksPlaceholder = !stored || REPORTER_PLACEHOLDER.test(stored);
+  if (looksPlaceholder && user) {
+    const label = user.name?.trim() || user.email?.trim();
+    if (mine && label) return label;
+    const repEmail = typeof ticket?.reporterEmail === 'string' ? ticket.reporterEmail.trim() : '';
+    if (repEmail && normalizeText(repEmail) === normalizeText(user.email) && label) {
+      return label;
+    }
+  }
+  return stored || 'Unknown';
+};
+
+const TicketsPage = ({ scope = 'all', embeddedInAdmin = false }) => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -194,14 +213,26 @@ const TicketsPage = ({ scope = 'all' }) => {
   };
 
   const handleTicketClick = async (ticket) => {
-    setSelectedTicket(ticket);
     setShowForm(false);
     try {
-      const response = await TicketAPI.getTicketComments(ticket.id);
-      setSelectedComments(response.data || []);
+      const detailRes = await TicketAPI.getTicketById(ticket.id);
+      const detail = detailRes.data;
+      setSelectedTicket(detail);
+      if (Array.isArray(detail.comments)) {
+        setSelectedComments(detail.comments);
+      } else {
+        const response = await TicketAPI.getTicketComments(ticket.id);
+        setSelectedComments(response.data || []);
+      }
     } catch (err) {
-      console.error('Error fetching comments:', err);
-      setSelectedComments([]);
+      console.error('Error loading ticket details:', err);
+      setSelectedTicket(ticket);
+      try {
+        const response = await TicketAPI.getTicketComments(ticket.id);
+        setSelectedComments(response.data || []);
+      } catch (e2) {
+        setSelectedComments([]);
+      }
     }
   };
 
@@ -250,6 +281,7 @@ const TicketsPage = ({ scope = 'all' }) => {
       saveOwnership(response.data?.id, buildUserKey(user));
       setShowForm(false);
       setSelectedTicket(response.data);
+      notifyUserDashboardMetricsChanged();
       alert('Ticket created successfully!');
     } catch (error) {
       console.error('Error creating ticket:', error);
@@ -266,6 +298,7 @@ const TicketsPage = ({ scope = 'all' }) => {
       setTickets((prev) => prev.map((t) => (t.id === selectedTicket.id ? response.data : t)));
       setSelectedTicket(response.data);
       setShowForm(false);
+      notifyUserDashboardMetricsChanged();
       alert('Ticket updated successfully!');
     } catch (error) {
       console.error('Error updating ticket:', error);
@@ -283,6 +316,7 @@ const TicketsPage = ({ scope = 'all' }) => {
       });
       setTickets((prev) => prev.map((t) => (t.id === selectedTicket.id ? response.data : t)));
       setSelectedTicket(response.data);
+      notifyUserDashboardMetricsChanged();
     } catch (err) {
       console.error('Failed to update status', err);
       alert('Failed to update status');
@@ -315,6 +349,7 @@ const TicketsPage = ({ scope = 'all' }) => {
         if (selectedTicket?.id === id) {
           setSelectedTicket(null);
         }
+        notifyUserDashboardMetricsChanged();
         alert('Ticket deleted successfully!');
       } catch (error) {
         console.error('Error deleting ticket:', error);
@@ -358,26 +393,68 @@ const TicketsPage = ({ scope = 'all' }) => {
   const canCreate = scope !== 'assigned';
 
   return (
-    <div className="tickets-page">
-      <div className="page-header">
-        <div>
-          <h1>{pageTitle}</h1>
-          <p className="tickets-subtitle">
-            Service-level timers included: time-to-first-response and time-to-resolution.
-          </p>
+    <div className={`tickets-page${embeddedInAdmin ? ' tickets-page--admin-shell' : ''}`}>
+      {embeddedInAdmin ? (
+        <>
+          <section className="admin-users-hero" aria-labelledby="tickets-admin-hero-title">
+            <div className="admin-users-hero-inner">
+              <div className="admin-users-hero-copy">
+                <span className="admin-users-hero-kicker">Incidents</span>
+                <h1 id="tickets-admin-hero-title" className="admin-users-hero-title">
+                  Incident command
+                </h1>
+                <p className="admin-users-hero-lead">
+                  Track maintenance and incidents with service-level timers for first response and resolution.
+                </p>
+              </div>
+              <div className="admin-users-hero-accent" aria-hidden>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="56" height="56">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.25}
+                    d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3h2a1 1 0 010 2H3v3a2 2 0 002 2h2a1 1 0 012 0h2a1 1 0 012 0h2a1 1 0 012 0h2a2 2 0 002-2v-3h-2a1 1 0 010-2h2V7a2 2 0 00-2-2H5z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </section>
+          {canCreate ? (
+            <div className="admin-embed-toolbar">
+              <button
+                type="button"
+                className="admin-embed-primary-btn"
+                onClick={() => {
+                  setSelectedTicket(null);
+                  setShowForm(!showForm);
+                }}
+              >
+                {showForm ? 'Cancel' : 'Report incident'}
+              </button>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="page-header">
+          <div>
+            <h1>{pageTitle}</h1>
+            <p className="tickets-subtitle">
+              Service-level timers included: time-to-first-response and time-to-resolution.
+            </p>
+          </div>
+          {canCreate ? (
+            <button
+              className="primary-btn"
+              onClick={() => {
+                setSelectedTicket(null);
+                setShowForm(!showForm);
+              }}
+            >
+              {showForm ? 'Cancel' : 'Report Incident'}
+            </button>
+          ) : null}
         </div>
-        {canCreate ? (
-          <button
-            className="primary-btn"
-            onClick={() => {
-              setSelectedTicket(null);
-              setShowForm(!showForm);
-            }}
-          >
-            {showForm ? 'Cancel' : 'Report Incident'}
-          </button>
-        ) : null}
-      </div>
+      )}
 
       <section className="sla-summary-grid" aria-label="SLA summary">
         <article className="sla-summary-card">
@@ -484,7 +561,7 @@ const TicketsPage = ({ scope = 'all' }) => {
                 </div>
                 <div className="info-group">
                   <label>Created By:</label>
-                  <span>{selectedTicket.reporterName || 'Unknown'}</span>
+                  <span>{createdByDisplayName(selectedTicket, user, ownershipMap)}</span>
                 </div>
                 <div className="info-group">
                   <label>Created At:</label>

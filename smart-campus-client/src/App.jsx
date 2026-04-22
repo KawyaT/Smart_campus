@@ -11,13 +11,16 @@ import Dashboard from './components/Dashboard';
 import AdminDashboard from './components/AdminDashboard';
 import UserDashboardLayout from './components/UserDashboardLayout';
 import UserDashboardHome from './pages/user/UserDashboardHome';
-import BookResourcePage from './pages/user/BookResourcePage';
 import ReportIssuePage from './pages/user/ReportIssuePage';
 import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
 import TicketDashboard from "./pages/tickets/TicketDashboard";
 import BookingManagementPage from './pages/bookings/BookingManagementPage';
 import ResourcesPage from './pages/resources/ResourcesPage';
-import TicketsPage from "./pages/tickets/TicketsPage";
+import PublicLayout from './pages/public/PublicLayout';
+import HomePage from './pages/public/HomePage';
+import AboutPage from './pages/public/AboutPage';
+import ServicesPage from './pages/public/ServicesPage';
+import ContactPage from './pages/public/ContactPage';
 //import BookingsPage from "./pages/bookings/BookingsPage";
 //import SettingsPage from "./pages/notifications/SettingsPage";
 import "./App.css";
@@ -26,8 +29,11 @@ const homePathForUser = (user) =>
   user?.role === 'ADMIN' ? '/admin-dashboard' : '/user-dashboard';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
+  if (loading) {
+    return null;
+  }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -36,8 +42,11 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
+  if (loading) {
+    return children;
+  }
   if (isAuthenticated) {
     return <Navigate to={homePathForUser(user)} replace />;
   }
@@ -177,14 +186,7 @@ function App() {
           <div className="app" data-theme="smartuni">
             <ToastContainer position="top-right" autoClose={2500} pauseOnHover theme="light" />
             <Routes>
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
+            <Route path="/login" element={<Login />} />
             <Route
               path="/register"
               element={
@@ -195,6 +197,13 @@ function App() {
             />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/oauth-success" element={<OAuthSuccess />} />
+
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="about" element={<AboutPage />} />
+              <Route path="services" element={<ServicesPage />} />
+              <Route path="contact" element={<ContactPage />} />
+            </Route>
 
             <Route
               path="/admin-dashboard"
@@ -255,8 +264,7 @@ function App() {
               }
             />
 
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
         </Router>

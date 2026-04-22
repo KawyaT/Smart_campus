@@ -7,7 +7,12 @@ import com.smartcampus.model.User;
 import com.smartcampus.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -66,6 +71,38 @@ public class UserService {
                 });
     }
     
+    /**
+     * Loads the signed-in user from JWT (principal = email). Use for mutating APIs that must run as the caller.
+     */
+    public User requireAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null
+                || authentication instanceof AnonymousAuthenticationToken
+                || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        String email = authentication.getName();
+        if (email == null || email.isBlank() || "anonymousUser".equalsIgnoreCase(email)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+    }
+
+    /** Display name for ticket comments / reporter fields: prefer profile name, then email. */
+    public static String resolveDisplayName(User user) {
+        if (user == null) {
+            return "User";
+        }
+        if (user.getName() != null && !user.getName().isBlank()) {
+            return user.getName().trim();
+        }
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            return user.getEmail().trim();
+        }
+        return "User";
+    }
+
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }

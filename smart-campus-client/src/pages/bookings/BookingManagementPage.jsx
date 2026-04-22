@@ -11,6 +11,7 @@ import {
   updateMyBooking,
 } from '../../api/bookingApi'
 import { useAuth } from '../../context/AuthContext'
+import { notifyUserDashboardMetricsChanged } from '../../utils/dashboardMetricsEvents'
 import BookingAdminPage from './BookingAdminPage'
 import BookingUserPage from './BookingUserPage'
 import './BookingManagementPage.css'
@@ -29,6 +30,7 @@ const BOOKING_WINDOW_START = '08:30'
 const BOOKING_WINDOW_END = '17:00'
 
 export default function BookingManagementPage({ initialMode = 'USER', showModeSwitch = true }) {
+  const adminShellEmbed = initialMode === 'ADMIN' && !showModeSwitch;
   const { user: authUser } = useAuth()
   const [mode, setMode] = useState(initialMode)
   const [statusFilter, setStatusFilter] = useState('')
@@ -199,6 +201,7 @@ export default function BookingManagementPage({ initialMode = 'USER', showModeSw
       setForm(initialForm)
       setEditingBookingId(null)
       await loadBookings()
+      if (mode === 'USER') notifyUserDashboardMetricsChanged()
     } catch (submitError) {
       setError(submitError.message)
     } finally {
@@ -217,6 +220,7 @@ export default function BookingManagementPage({ initialMode = 'USER', showModeSw
       })
       setSuccess('Booking cancelled successfully.')
       await loadBookings()
+      if (mode === 'USER') notifyUserDashboardMetricsChanged()
     } catch (cancelError) {
       setError(cancelError.message)
     }
@@ -334,23 +338,49 @@ export default function BookingManagementPage({ initialMode = 'USER', showModeSw
   }
 
   return (
-    <section className="booking-page">
-      <header className="booking-header">
-        <div className="header-top">
-          <p className="kicker">Smart Campus</p>
-          {showModeSwitch ? (
-            <button className="mode-switch" type="button" onClick={handleModeToggle}>
-              Switch to {mode === 'USER' ? 'Admin' : 'User'}
-            </button>
-          ) : null}
-        </div>
-        <h1>{mode === 'USER' ? 'Booking Management' : 'Admin Booking Review'}</h1>
-        <p className="subtitle">
-          {mode === 'USER'
-            ? 'Request resources, check approval state, and cancel approved bookings from one place.'
-            : 'Review all booking requests, apply filters, and approve or reject pending requests with a reason.'}
-        </p>
-      </header>
+    <section className={`booking-page${adminShellEmbed ? ' booking-page--admin-shell' : ''}`}>
+      {adminShellEmbed && mode === 'ADMIN' ? (
+        <section className="admin-users-hero" aria-labelledby="booking-admin-hero-title">
+          <div className="admin-users-hero-inner">
+            <div className="admin-users-hero-copy">
+              <span className="admin-users-hero-kicker">Bookings</span>
+              <h1 id="booking-admin-hero-title" className="admin-users-hero-title">
+                Booking approvals
+              </h1>
+              <p className="admin-users-hero-lead">
+                Review requests, use filters, and approve or reject pending bookings with a clear reason.
+              </p>
+            </div>
+            <div className="admin-users-hero-accent" aria-hidden>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="56" height="56">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.25}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <header className="booking-header">
+          <div className="header-top">
+            <p className="kicker">Smart Campus</p>
+            {showModeSwitch ? (
+              <button className="mode-switch" type="button" onClick={handleModeToggle}>
+                Switch to {mode === 'USER' ? 'Admin' : 'User'}
+              </button>
+            ) : null}
+          </div>
+          <h1>{mode === 'USER' ? 'Booking Management' : 'Admin Booking Review'}</h1>
+          <p className="subtitle">
+            {mode === 'USER'
+              ? 'Request resources, check approval state, and cancel approved bookings from one place.'
+              : 'Review all booking requests, apply filters, and approve or reject pending requests with a reason.'}
+          </p>
+        </header>
+      )}
 
       {mode === 'USER' ? (
         <BookingUserPage

@@ -3,18 +3,25 @@ package com.smartcampus.service.ticket;
 import com.smartcampus.dto.request.CreateTicketRequest;
 import com.smartcampus.dto.request.UpdateTicketRequest;
 import com.smartcampus.dto.responce.*;
+import com.smartcampus.model.User;
 import com.smartcampus.model.ticket.Ticket;
 import com.smartcampus.model.ticket.TicketComment;
+import com.smartcampus.repository.UserRepository;
 import com.smartcampus.repository.ticket.TicketRepository;
 import com.smartcampus.repository.ticket.TicketCommentRepository;
+import com.smartcampus.service.NotificationService;
+import com.smartcampus.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class TicketService {
 
@@ -24,7 +31,13 @@ public class TicketService {
     @Autowired
     private TicketCommentRepository commentRepository;
 
-    public TicketResponse createTicket(CreateTicketRequest request, String reporterId, String reporterName) {
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public TicketResponse createTicket(CreateTicketRequest request, String reporterId, String reporterName, String reporterEmail) {
         Ticket ticket = new Ticket();
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
@@ -34,6 +47,9 @@ public class TicketService {
         ticket.setStatus(Ticket.TicketStatus.OPEN);
         ticket.setReporterId(reporterId);
         ticket.setReporterName(reporterName);
+        if (reporterEmail != null && !reporterEmail.isBlank()) {
+            ticket.setReporterEmail(reporterEmail.trim());
+        }
         ticket.setLocation(request.getLocation());
         ticket.setFacility(request.getFacility());
         ticket.setDepartment(request.getDepartment());
@@ -46,6 +62,10 @@ public class TicketService {
         ticket.setCommentCount(0);
 
         Ticket savedTicket = ticketRepository.save(ticket);
+        notifyTicketUser(
+            savedTicket.getReporterId(),
+            "Your ticket \"" + shortenTicketTitle(savedTicket.getTitle()) + "\" was submitted."
+        );
         return convertToResponse(savedTicket);
     }
 
@@ -61,7 +81,9 @@ public class TicketService {
             throw new RuntimeException("Ticket not found");
         }
         
-        TicketDetailResponse detail = TicketDetailResponse.fromTicket(ticket.get());
+        Ticket ticketEntity = ticket.get();
+        TicketDetailResponse detail = TicketDetailResponse.fromTicket(ticketEntity);
+        detail.setReporterName(effectiveReporterName(ticketEntity));
         List<TicketComment> comments = commentRepository.findByTicketId(id);
         detail.setComments(comments.stream()
                 .map(this::convertCommentToDTO)
@@ -114,6 +136,8 @@ public class TicketService {
         ticket.setUpdatedAt(LocalDateTime.now());
         Ticket updatedTicket = ticketRepository.save(ticket);
 
+        String shortTitle = shortenTicketTitle(updatedTicket.getTitle());
+
         if (request.getStatus() != null && previousStatus != updatedTicket.getStatus()) {
             addEvent(
                     id,
@@ -122,6 +146,10 @@ public class TicketService {
                     "Status changed from " + previousStatus + " to " + updatedTicket.getStatus(),
                     TicketComment.CommentType.STATUS_CHANGE.toString(),
                     false
+            );
+            notifyTicketUser(
+                    updatedTicket.getReporterId(),
+                    "Ticket \"" + shortTitle + "\" status changed to " + updatedTicket.getStatus() + "."
             );
         }
 
@@ -136,6 +164,19 @@ public class TicketService {
                     TicketComment.CommentType.ASSIGNMENT_CHANGE.toString(),
                     true
             );
+            if (StringUtils.hasText(updatedTicket.getAssignedToId())) {
+                notifyTicketUser(
+                        updatedTicket.getAssignedToId(),
+                        "You were assigned to ticket \"" + shortTitle + "\"."
+                );
+            }
+            if (StringUtils.hasText(updatedTicket.getReporterId())) {
+                notifyTicketUser(
+                        updatedTicket.getReporterId(),
+                        "Your ticket \"" + shortTitle + "\" was reassigned to "
+                                + (newAssignee != null ? newAssignee : "staff") + "."
+                );
+            }
         }
 
         return convertToResponse(updatedTicket);
@@ -216,6 +257,17 @@ public class TicketService {
         ticket.getCommentIds().add(savedComment.getId());
         ticket.setCommentCount(ticket.getCommentCount() + 1);
         ticketRepository.save(ticket);
+
+        if (!isInternal) {
+            String shortTitle = shortenTicketTitle(ticket.getTitle());
+            String msg = "New comment on ticket \"" + shortTitle + "\".";
+            if (StringUtils.hasText(ticket.getReporterId()) && !ticket.getReporterId().equals(authorId)) {
+                notifyCommentUser(ticket.getReporterId(), msg);
+            }
+            if (StringUtils.hasText(ticket.getAssignedToId()) && !ticket.getAssignedToId().equals(authorId)) {
+                notifyCommentUser(ticket.getAssignedToId(), msg);
+            }
+        }
 
         return convertCommentToDTO(savedComment);
     }
@@ -325,6 +377,68 @@ public class TicketService {
                 .build();
     }
 
+    private void notifyTicketUser(String userId, String message) {
+        if (!StringUtils.hasText(userId)) {
+            return;
+        }
+        try {
+            notificationService.createNotification(userId.trim(), message, "TICKET");
+        } catch (Exception ex) {
+            log.warn("Could not create ticket notification for user {}: {}", userId, ex.getMessage());
+        }
+    }
+
+    private void notifyCommentUser(String userId, String message) {
+        if (!StringUtils.hasText(userId)) {
+            return;
+        }
+        try {
+            notificationService.createNotification(userId.trim(), message, "COMMENT");
+        } catch (Exception ex) {
+            log.warn("Could not create comment notification for user {}: {}", userId, ex.getMessage());
+        }
+    }
+
+    private static String shortenTicketTitle(String title) {
+        if (title == null) {
+            return "";
+        }
+        String t = title.trim();
+        return t.length() <= 80 ? t : t.substring(0, 77) + "...";
+    }
+
+    /**
+     * Legacy rows may store "Current User" while {@code reporterId} points at a real account — resolve for admin lists/details.
+     */
+    private String effectiveReporterName(Ticket ticket) {
+        String stored = ticket.getReporterName();
+        String rid = ticket.getReporterId();
+        if (!needsReporterNameEnrichment(stored)) {
+            return stored != null ? stored : "";
+        }
+        if (rid != null && !rid.isBlank()) {
+            Optional<User> opt = userRepository.findById(rid);
+            if (opt.isPresent()) {
+                return UserService.resolveDisplayName(opt.get());
+            }
+        }
+        String email = ticket.getReporterEmail();
+        if (email != null && !email.isBlank()) {
+            Optional<User> byEmail = userRepository.findByEmail(email.trim());
+            if (byEmail.isPresent()) {
+                return UserService.resolveDisplayName(byEmail.get());
+            }
+        }
+        return stored != null ? stored : "";
+    }
+
+    private static boolean needsReporterNameEnrichment(String storedName) {
+        if (storedName == null || storedName.isBlank()) {
+            return true;
+        }
+        return "current user".equalsIgnoreCase(storedName.trim());
+    }
+
     private TicketResponse convertToResponse(Ticket ticket) {
         return TicketResponse.builder()
                 .id(ticket.getId())
@@ -336,7 +450,8 @@ public class TicketService {
                 .priority(ticket.getPriority() != null ? ticket.getPriority().toString() : "")
                 .severity(ticket.getSeverity() != null ? ticket.getSeverity().toString() : "")
             .reporterId(ticket.getReporterId())
-                .reporterName(ticket.getReporterName())
+                .reporterName(effectiveReporterName(ticket))
+                .reporterEmail(ticket.getReporterEmail())
             .assignedToId(ticket.getAssignedToId())
                 .assignedToName(ticket.getAssignedToName())
                 .createdAt(ticket.getCreatedAt())

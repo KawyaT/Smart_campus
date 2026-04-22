@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { normalizeJwtFromUrl, parseOAuthTokenFromWindow } from '../utils/oauthToken';
+import { getSafeRedirectPath } from '../utils/safeRedirect';
 import './OAuthSuccess.css';
 
 /** Backend redirects here: /oauth-success?token=... (see OAuth2LoginSuccessHandler). */
@@ -32,6 +33,14 @@ const OAuthSuccess = () => {
       const result = await completeGoogleSignIn(token);
       if (!result.success) {
         navigate('/login', { replace: true, state: { oauthError: result.message } });
+        return;
+      }
+
+      const stored = sessionStorage.getItem('postLoginRedirect');
+      sessionStorage.removeItem('postLoginRedirect');
+      const next = getSafeRedirectPath(stored);
+      if (next) {
+        navigate(next, { replace: true });
         return;
       }
 

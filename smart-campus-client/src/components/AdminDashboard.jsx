@@ -1,12 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../api/users';
+import { getAllBookingsForAdmin } from '../api/bookingApi';
+import { getAllResources } from '../api/resourceApi';
+import TicketAPI from '../api/ticketAPI';
+import { buildPriorityQueue } from '../utils/adminOverviewUtils';
 import logo from '../assets/logo.png';
 import AdminUserManagementPanel from './AdminUserManagementPanel';
 import AdminFacilitiesPanel from './AdminFacilitiesPanel';
+import AdminSecurityAlertPanel from './AdminSecurityAlertPanel';
 import BookingManagementPage from '../pages/bookings/BookingManagementPage';
 import TicketsPage from '../pages/tickets/TicketsPage';
 import './DashboardShell.css';
+import './AdminUserManagementPanel.css';
 import './AdminDashboard.css';
 
 const IconOverview = () => (
@@ -39,12 +45,6 @@ const IconBuilding = () => (
   </svg>
 );
 
-const IconChart = () => (
-  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-  </svg>
-);
-
 const IconShield = () => (
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -73,8 +73,7 @@ const SIDEBAR_NAV = [
   { id: 'bookings', label: 'Booking approvals', sub: 'Requests', Icon: IconCalendar },
   { id: 'incidents', label: 'Incident command', sub: 'Tickets', Icon: IconTicket },
   { id: 'facilities', label: 'Facilities', sub: 'Resources', Icon: IconBuilding },
-  { id: 'reports', label: 'Reports', sub: 'Insights', Icon: IconChart },
-  { id: 'security', label: 'Security & audit', sub: 'Logs', Icon: IconShield },
+  { id: 'security', label: 'Notices', sub: 'Campus notices', Icon: IconShield },
 ];
 
 const AdminPlaceholder = ({ title, body }) => (
@@ -97,6 +96,17 @@ const AdminDashboard = () => {
   const [usersError, setUsersError] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
+
+  const [overviewLoad, setOverviewLoad] = useState({
+    loading: false,
+    pendingBookings: null,
+    openIncidents: null,
+    catalogueCount: null,
+    queue: [],
+    errorBookings: false,
+    errorTickets: false,
+    errorResources: false,
+  });
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -139,21 +149,125 @@ const AdminDashboard = () => {
 
   const registeredCount = users.length;
 
-  const overviewStats = [
-    { label: 'Pending booking approvals', value: '—', hint: 'Needs your decision' },
-    { label: 'Open incident tickets', value: '—', hint: 'Across campus' },
-    {
-      label: 'Registered users',
-      value:
-        usersError != null
-          ? '—'
-          : usersLoading && users.length === 0
-            ? '…'
-            : String(registeredCount),
-      hint: 'All accounts',
-    },
-    { label: 'Catalogue resources', value: '—', hint: 'Rooms & equipment' },
-  ];
+  useEffect(() => {
+    if (activeNav !== 'overview') return undefined;
+    let cancelled = false;
+
+    const loadOverview = async () => {
+      setOverviewLoad((prev) => ({ ...prev, loading: true }));
+      try {
+        const settled = await Promise.allSettled([
+          getAllBookingsForAdmin('PENDING', ''),
+          TicketAPI.getAllTickets(),
+          getAllResources(),
+        ]);
+        if (cancelled) return;
+
+        const pendingRaw = settled[0].status === 'fulfilled' ? settled[0].value : null;
+        const pendingBookings = Array.isArray(pendingRaw) ? pendingRaw : [];
+
+        let tickets = [];
+        if (settled[1].status === 'fulfilled') {
+          const payload = settled[1].value?.data;
+          tickets = Array.isArray(payload) ? payload : [];
+        }
+
+        let resources = [];
+        if (settled[2].status === 'fulfilled') {
+          const payload = settled[2].value?.data;
+          resources = Array.isArray(payload) ? payload : [];
+        }
+
+        const openIncidents = tickets.filter(
+          (t) => t && (t.status === 'OPEN' || t.status === 'IN_PROGRESS')
+        ).length;
+
+        setOverviewLoad({
+          loading: false,
+          pendingBookings: pendingBookings.length,
+          openIncidents,
+          catalogueCount: resources.length,
+          queue: buildPriorityQueue(pendingBookings, tickets),
+          errorBookings: settled[0].status !== 'fulfilled',
+          errorTickets: settled[1].status !== 'fulfilled',
+          errorResources: settled[2].status !== 'fulfilled',
+        });
+      } catch {
+        if (!cancelled) {
+          setOverviewLoad((prev) => ({
+            ...prev,
+            loading: false,
+            errorBookings: true,
+            errorTickets: true,
+            errorResources: true,
+          }));
+        }
+      }
+    };
+
+    loadOverview();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeNav]);
+
+  const overviewStats = useMemo(() => {
+    const metric = (value, loading, error, errorHint, okHint) => {
+      if (loading && value === null) return { value: '…', hint: okHint };
+      if (error) return { value: '—', hint: errorHint };
+      return { value: String(value ?? 0), hint: okHint };
+    };
+
+    const bookings = metric(
+      overviewLoad.pendingBookings,
+      overviewLoad.loading,
+      overviewLoad.errorBookings,
+      'Could not load bookings',
+      'Needs your decision'
+    );
+    const incidents = metric(
+      overviewLoad.openIncidents,
+      overviewLoad.loading,
+      overviewLoad.errorTickets,
+      'Could not load incidents',
+      'OPEN or in progress'
+    );
+    const catalogue = metric(
+      overviewLoad.catalogueCount,
+      overviewLoad.loading,
+      overviewLoad.errorResources,
+      'Could not load resources',
+      'Rooms & equipment'
+    );
+
+    return [
+      { label: 'Pending booking approvals', ...bookings },
+      { label: 'Open incident tickets', ...incidents },
+      {
+        label: 'Registered users',
+        value:
+          usersError != null
+            ? '—'
+            : usersLoading && users.length === 0
+              ? '…'
+              : String(registeredCount),
+        hint: usersError ? 'Could not load accounts' : 'All accounts',
+      },
+      { label: 'Catalogue resources', ...catalogue },
+    ];
+  }, [
+    overviewLoad.loading,
+    overviewLoad.pendingBookings,
+    overviewLoad.openIncidents,
+    overviewLoad.catalogueCount,
+    overviewLoad.errorBookings,
+    overviewLoad.errorTickets,
+    overviewLoad.errorResources,
+    registeredCount,
+    usersError,
+    usersLoading,
+    users.length,
+  ]);
 
   const renderMain = () => {
     if (activeNav === 'users') {
@@ -174,7 +288,10 @@ const AdminDashboard = () => {
       return <BookingManagementPage initialMode="ADMIN" showModeSwitch={false} />;
     }
     if (activeNav === 'incidents') {
-      return <TicketsPage scope="all" />;
+      return <TicketsPage scope="all" embeddedInAdmin />;
+    }
+    if (activeNav === 'security') {
+      return <AdminSecurityAlertPanel />;
     }
     if (activeNav === 'overview') {
       return (
@@ -201,11 +318,13 @@ const AdminDashboard = () => {
             </div>
           </section>
 
-          <section className="dash-stats admin-stats" aria-label="Campus overview">
+          <section className="dash-stats admin-stats admin-overview-stats" aria-label="Campus overview">
             {overviewStats.map((s) => (
               <article key={s.label} className="dash-stat dash-stat--admin">
                 <div className="dash-stat-label">{s.label}</div>
-                <div className="dash-stat-value">{s.value}</div>
+                <div className="dash-stat-value-wrap">
+                  <div className="dash-stat-value">{s.value}</div>
+                </div>
                 <div className="dash-stat-hint">{s.hint}</div>
               </article>
             ))}
@@ -218,33 +337,71 @@ const AdminDashboard = () => {
               </h2>
               <span className="admin-panel-badge">Overview</span>
             </div>
-            <p className="admin-panel-lead">
-              Pending approvals, escalations, and other urgent items will appear in this list.
+            <p className="admin-panel-lead admin-panel-lead--queue">
+              Pending <strong>booking requests</strong> and active <strong>incidents</strong> are combined here by
+              urgency. Choose an item to jump to the right tool.
             </p>
-            <div className="dash-table-wrap">
-              <table className="dash-table">
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Summary</th>
-                    <th>When</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="dash-table-empty-row">
-                    <td colSpan={4}>
-                      <div className="dash-table-empty">
-                        <span className="dash-table-empty-icon" aria-hidden>
-                          <IconCalendar />
+            <div className="admin-queue-shell">
+              {overviewLoad.loading ? (
+                <div className="admin-queue-empty">
+                  <span className="admin-queue-empty-icon" aria-hidden>
+                    <IconCalendar />
+                  </span>
+                  <strong>Loading queue…</strong>
+                  <span>Fetching bookings and incidents.</span>
+                </div>
+              ) : overviewLoad.queue.length === 0 ? (
+                <div className="admin-queue-empty">
+                  <span className="admin-queue-empty-icon" aria-hidden>
+                    <IconCalendar />
+                  </span>
+                  <strong>All clear</strong>
+                  <span>No pending approvals or open incidents need attention right now.</span>
+                </div>
+              ) : (
+                <ul className="admin-queue-list" aria-label="Priority actions">
+                  {overviewLoad.queue.map((row) => (
+                    <li key={row.key}>
+                      <button
+                        type="button"
+                        className="admin-queue-card"
+                        onClick={() => setActiveNav(row.navTarget)}
+                      >
+                        <span className="admin-queue-card-icon" aria-hidden>
+                          {row.navTarget === 'bookings' ? <IconCalendar /> : <IconTicket />}
                         </span>
-                        <strong>Nothing waiting</strong>
-                        <span>New items will show here when there is something that needs your attention.</span>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                        <span className="admin-queue-card-body">
+                          <span className="admin-queue-card-kicker">
+                            <span className="admin-queue-kind">{row.typeLabel}</span>
+                            {row.badge ? (
+                              <span
+                                className={`admin-queue-priority admin-queue-priority--${String(row.badge).toLowerCase()}`}
+                              >
+                                {row.badge}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="admin-queue-card-title">{row.summary}</span>
+                          {row.subtitle ? <span className="admin-queue-card-desc">{row.subtitle}</span> : null}
+                          <span className="admin-queue-card-footer">
+                            <span className="admin-queue-card-time">{row.whenLabel}</span>
+                            <span
+                              className={`admin-queue-status-pill admin-queue-status-pill--${row.navTarget === 'bookings' ? 'booking' : 'incident'}`}
+                            >
+                              {row.statusLabel}
+                            </span>
+                          </span>
+                        </span>
+                        <span className="admin-queue-card-chevron" aria-hidden>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </section>
 

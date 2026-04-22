@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { notificationsAPI } from '../api/notifications';
 import logo from '../assets/logo.png';
 import NotificationBell from './NotificationBell';
 import UserProfileModal from './UserProfileModal';
+import PublicSiteFooter from './PublicSiteFooter';
 import './DashboardShell.css';
 import './UserDashboard.css';
 
@@ -23,32 +23,14 @@ const HEADER_NAV = [
 ];
 
 const UserDashboardLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const role = user?.role || 'USER';
   const [unreadAlerts, setUnreadAlerts] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const userMenuRef = useRef(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    function loadUnread() {
-      notificationsAPI
-        .unreadCount()
-        .then((d) => {
-          if (!cancelled) setUnreadAlerts(typeof d.count === 'number' ? d.count : 0);
-        })
-        .catch(() => {
-          if (!cancelled) setUnreadAlerts(null);
-        });
-    }
-    loadUnread();
-    const interval = setInterval(loadUnread, 60000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
 
   useEffect(() => {
     if (!userMenuOpen) return undefined;
@@ -89,7 +71,7 @@ const UserDashboardLayout = () => {
             ))}
           </nav>
           <div className="dash-topbar-actions user-topbar-actions">
-            <NotificationBell onUnreadChange={setUnreadAlerts} />
+            <NotificationBell onUnreadChange={setUnreadAlerts} pollIntervalMs={8000} />
             <div className="user-account-menu" ref={userMenuRef}>
               <button
                 type="button"
@@ -138,6 +120,7 @@ const UserDashboardLayout = () => {
                     role="menuitem"
                     onClick={() => {
                       setUserMenuOpen(false);
+                      navigate('/', { replace: true });
                       logout();
                     }}
                   >
@@ -151,7 +134,13 @@ const UserDashboardLayout = () => {
       </header>
 
       <UserProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
-      <Outlet context={{ unreadAlerts }} />
+      <div className="user-dashboard-outlet-wrap">
+        <div key={location.pathname} className="user-shell-tab-enter">
+          <Outlet context={{ unreadAlerts }} />
+        </div>
+      </div>
+
+      <PublicSiteFooter />
     </div>
   );
 };

@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_ORIGIN } from '../api/client';
+import { getSafeRedirectPath } from '../utils/safeRedirect';
 import './Login.css';
+
+const homePathForUser = (user) =>
+  user?.role === 'ADMIN' ? '/admin-dashboard' : '/user-dashboard';
 
 const Login = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [oauthBanner, setOauthBanner] = useState('');
 
@@ -34,7 +39,16 @@ const Login = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login, loading, error, clearError } = useAuth();
+  const { login, loading, error, clearError, user, isAuthenticated } = useAuth();
+
+  const redirectTarget = searchParams.get('redirect');
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isAuthenticated || !user) return;
+    const next = getSafeRedirectPath(redirectTarget);
+    navigate(next || homePathForUser(user), { replace: true });
+  }, [loading, isAuthenticated, user, navigate, redirectTarget]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -61,6 +75,17 @@ const Login = () => {
   return (
     <div className="login-page">
       <div className="auth-card">
+        <nav className="login-nav-home" aria-label="Browse">
+          <Link to="/" className="login-home-link">
+            <span className="login-home-link-icon" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+            </span>
+            <span className="login-home-link-text">Back to home</span>
+          </Link>
+        </nav>
         <div className="auth-header">
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Sign in to continue to SmartUni</p>
@@ -99,6 +124,9 @@ const Login = () => {
             className="auth-google-btn"
             disabled={loading || isSubmitting}
             onClick={() => {
+              const r = searchParams.get('redirect');
+              if (r) sessionStorage.setItem('postLoginRedirect', r);
+              else sessionStorage.removeItem('postLoginRedirect');
               window.location.href = `${API_ORIGIN}/oauth2/authorization/google`;
             }}
           >

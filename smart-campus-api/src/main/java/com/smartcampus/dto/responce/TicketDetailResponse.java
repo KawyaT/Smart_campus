@@ -25,6 +25,7 @@ public class TicketDetailResponse {
     
     private String reporterId;
     private String reporterName;
+    private String reporterEmail;
     private String assignedToId;
     private String assignedToName;
     
@@ -63,6 +64,7 @@ public class TicketDetailResponse {
                 .severity(ticket.getSeverity() != null ? ticket.getSeverity().toString() : null)
                 .reporterId(ticket.getReporterId())
                 .reporterName(ticket.getReporterName())
+                .reporterEmail(ticket.getReporterEmail())
                 .assignedToId(ticket.getAssignedToId())
                 .assignedToName(ticket.getAssignedToName())
                 .createdAt(ticket.getCreatedAt())

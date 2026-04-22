@@ -25,11 +25,14 @@ import com.smartcampus.model.booking.BookingStatus;
 import com.smartcampus.model.resource.Resource;
 import com.smartcampus.repository.booking.BookingRepository;
 import com.smartcampus.repository.resource.ResourceRepository;
+import com.smartcampus.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookingService {
 
     private static final EnumSet<BookingStatus> ACTIVE_BOOKING_STATUSES = EnumSet.of(
@@ -44,6 +47,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
+    private final NotificationService notificationService;
 
     public BookingResponse createBooking(BookingCreateRequest request, String requesterId, String requesterName) {
         validateTimeRange(request.startTime(), request.endTime());
@@ -66,7 +70,13 @@ public class BookingService {
             .updatedAt(LocalDateTime.now())
             .build();
 
-        return toResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        String resourceLabel = bookingResourceLabel(saved);
+        notifyBooking(
+            requesterId,
+            "Your booking for " + resourceLabel + " was submitted and is pending approval."
+        );
+        return toResponse(saved);
     }
 
     public List<BookingResponse> getMyBookings(String requesterId, BookingStatus status) {
@@ -97,7 +107,9 @@ public class BookingService {
         booking.setCancelledAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
 
-        return toResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        notifyBooking(requesterId, "Your booking for " + bookingResourceLabel(saved) + " was cancelled.");
+        return toResponse(saved);
     }
 
     public BookingResponse updateMyBooking(String requesterId, String bookingId, BookingUpdateRequest request) {
@@ -128,7 +140,9 @@ public class BookingService {
         booking.setExpectedAttendees(request.expectedAttendees());
         booking.setUpdatedAt(LocalDateTime.now());
 
-        return toResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        notifyBooking(requesterId, "Your booking for " + bookingResourceLabel(saved) + " was updated.");
+        return toResponse(saved);
     }
 
     public List<BookingResponse> getAllBookings(BookingStatus status, String requesterId) {
@@ -210,7 +224,42 @@ public class BookingService {
         booking.setReviewedAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
 
-        return toResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        String resourceLabel = bookingResourceLabel(saved);
+        if (decision == BookingStatus.APPROVED) {
+            notifyBooking(
+                saved.getRequesterId(),
+                "Your booking for " + resourceLabel + " was approved."
+            );
+        } else {
+            String suffix = StringUtils.hasText(reason) ? " Reason: " + reason.trim() : "";
+            notifyBooking(
+                saved.getRequesterId(),
+                "Your booking for " + resourceLabel + " was rejected." + suffix
+            );
+        }
+        return toResponse(saved);
+    }
+
+    private void notifyBooking(String userId, String message) {
+        if (!StringUtils.hasText(userId)) {
+            return;
+        }
+        try {
+            notificationService.createNotification(userId.trim(), message, "BOOKING");
+        } catch (Exception ex) {
+            log.warn("Could not create booking notification for user {}: {}", userId, ex.getMessage());
+        }
+    }
+
+    private String bookingResourceLabel(Booking booking) {
+        if (StringUtils.hasText(booking.getResourceName())) {
+            return booking.getResourceName().trim();
+        }
+        if (StringUtils.hasText(booking.getResourceId())) {
+            return booking.getResourceId().trim();
+        }
+        return "your resource";
     }
 
     private void ensureNoConflict(String resourceId, LocalDate bookingDate, LocalTime startTime, LocalTime endTime) {

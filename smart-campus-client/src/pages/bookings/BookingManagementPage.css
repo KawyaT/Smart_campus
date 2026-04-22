@@ -1,8 +1,8 @@
 .booking-page {
   display: grid;
   gap: 20px;
-  width: min(100%, 1180px);
-  max-width: 1180px;
+  width: min(100%, 1120px);
+  max-width: 1120px;
   padding: 24px 20px 40px;
   margin: 0 auto;
   color: #0f172a;
@@ -31,8 +31,6 @@
 .booking-header::before {
   content: '';
   position: absolute;
-    font-weight: 700;
-    letter-spacing: 0.01em;
   inset: 0 auto auto 0;
   width: 100%;
   height: 4px;
@@ -85,10 +83,16 @@
 
 .booking-header h1 {
   margin: 0.55rem 0 0;
-  font-family: 'Space Grotesk', sans-serif;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 800;
   color: #0f172a;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 42%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
@@ -170,7 +174,7 @@
 .booking-overview-card strong {
   display: block;
   margin-top: 0.22rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 1.45rem;
   letter-spacing: -0.03em;
   color: #0f172a;
@@ -196,7 +200,7 @@
 .resource-spotlight strong {
   display: block;
   margin-top: 0.2rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   color: #0f172a;
 }
 
@@ -389,7 +393,7 @@
 
 .table-head h2 {
   margin: 0;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.02em;
   color: #0f172a;
 }
@@ -496,7 +500,7 @@
 .analytics-kpi-card strong {
   display: block;
   margin-top: 0.22rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 1.42rem;
   color: #0f172a;
 }
@@ -577,7 +581,7 @@
 .analytics-ring-inner strong {
   display: block;
   line-height: 1;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   color: #1d4ed8;
 }
 
@@ -597,7 +601,7 @@
 .analytics-visual-note strong {
   display: inline-block;
   margin-top: 0.22rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   color: #0f172a;
   font-size: 1.05rem;
 }
@@ -641,7 +645,7 @@
 
 .analytics-trend-value {
   color: #0f172a;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 0.95rem;
   letter-spacing: -0.01em;
 }
@@ -711,7 +715,7 @@
 
 .analytics-title {
   margin: 0 0 0.55rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   letter-spacing: -0.01em;
   color: #0f172a;
@@ -796,7 +800,7 @@
 
 .booking-item-top h3 {
   margin: 0;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.02em;
   color: #0f172a;
 }

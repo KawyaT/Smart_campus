@@ -4,8 +4,11 @@ import { useAuth } from '../context/AuthContext';
 
 /** ADMIN only — others sent to /user-dashboard. */
 export function AdminDashboardRoute({ children }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
 
+  if (loading) {
+    return null;
+  }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -17,8 +20,11 @@ export function AdminDashboardRoute({ children }) {
 
 /** USER / TECHNICIAN — ADMIN sent to /admin-dashboard. */
 export function UserDashboardRoute({ children }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
 
+  if (loading) {
+    return null;
+  }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import TicketAPI from '../../api/ticketAPI';
+import { getMyBookings } from '../../api/bookingApi';
+import { DASHBOARD_USER_METRICS_EVENT } from '../../utils/dashboardMetricsEvents';
 import userDashboardHero from '../../assets/user-dashboard-hero.jpg';
 
 const IconCalendar = () => (
@@ -13,12 +15,6 @@ const IconCalendar = () => (
 const IconTicket = () => (
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3h2a1 1 0 010 2H3v3a2 2 0 002 2h2a1 1 0 012 0h2a1 1 0 012 0h2a1 1 0 012 0h2a2 2 0 002-2v-3h-2a1 1 0 010-2h2V7a2 2 0 00-2-2H5z" />
-  </svg>
-);
-
-const IconBell = () => (
-  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
   </svg>
 );
 
@@ -49,13 +45,11 @@ const QUICK_BY_ROLE = {
     { title: 'Book a resource', desc: 'Rooms, labs, equipment', Icon: IconBuilding, to: '/user-dashboard/book-resource' },
     { title: 'My bookings', desc: 'Upcoming and past', Icon: IconCalendar, to: '/user-dashboard/my-bookings' },
     { title: 'Report an issue', desc: 'Maintenance & incidents', Icon: IconTicket, to: '/user-dashboard/report-issue' },
-    { title: 'Notifications', desc: 'Alerts and updates', Icon: IconBell, to: '/user-dashboard' },
   ],
   TECHNICIAN: [
     { title: 'My assignments', desc: 'Tickets assigned to you', Icon: IconTicket, to: '/user-dashboard/report-issue' },
     { title: 'Update status', desc: 'Progress and resolution', Icon: IconWrench, to: '/user-dashboard/report-issue' },
     { title: 'Resource check', desc: 'Facility status', Icon: IconBuilding, to: '/user-dashboard/book-resource' },
-    { title: 'Notifications', desc: 'New work and comments', Icon: IconBell, to: '/user-dashboard' },
   ],
 };
 
@@ -99,34 +93,124 @@ const isOwnedByCurrentUser = (ticket, user, ownershipMap) => {
   );
 };
 
+/** Bookings that are still active / awaiting action and on or after today (local calendar). */
+function countUpcomingBookings(bookings) {
+  const list = Array.isArray(bookings) ? bookings : [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return list.filter((b) => {
+    if (!b?.bookingDate || b.status === 'CANCELLED' || b.status === 'REJECTED') return false;
+    const parts = String(b.bookingDate).split('-').map(Number);
+    if (parts.length < 3) return false;
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (Number.isNaN(d.getTime())) return false;
+    if (d < today) return false;
+    return b.status === 'APPROVED' || b.status === 'PENDING';
+  }).length;
+}
+
+/** Axios success payload: `.data` is the body. */
+function axiosData(result) {
+  if (!result || result.status !== 'fulfilled') return null;
+  const v = result.value;
+  if (v && Array.isArray(v.data)) return v.data;
+  if (Array.isArray(v)) return v;
+  return null;
+}
+
 const UserDashboardHome = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const { unreadAlerts } = useOutletContext() || {};
   const [myOpenTicketCount, setMyOpenTicketCount] = useState(null);
+  const [myUpcomingBookingCount, setMyUpcomingBookingCount] = useState(null);
+  const [technicianMetrics, setTechnicianMetrics] = useState({
+    assigned: null,
+    inProgress: null,
+    resolvedToday: null,
+  });
+  /** Bumps when bookings/tickets change elsewhere so counts refetch while this page is mounted. */
+  const [metricsNonce, setMetricsNonce] = useState(0);
 
   const role = user?.role || 'USER';
   const quickActions = QUICK_BY_ROLE[role] || QUICK_BY_ROLE.USER;
   const statsBase = STATS_BY_ROLE[role] || STATS_BY_ROLE.USER;
 
+  const bookingIdentity = useMemo(
+    () => ({
+      userId: user?.id || user?.email || '',
+      userName: user?.name || user?.email || '',
+    }),
+    [user?.id, user?.email, user?.name]
+  );
+
+  useEffect(() => {
+    const bump = () => setMetricsNonce((n) => n + 1);
+    window.addEventListener(DASHBOARD_USER_METRICS_EVENT, bump);
+    return () => window.removeEventListener(DASHBOARD_USER_METRICS_EVENT, bump);
+  }, []);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setMetricsNonce((n) => n + 1);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
-    const loadMyTicketSummary = async () => {
-      if (!user || role !== 'USER') return;
+    const loadUserSummaries = async () => {
+      if (!user) return;
+
+      if (role === 'TECHNICIAN') {
+        if (!user.id) {
+          setTechnicianMetrics({ assigned: null, inProgress: null, resolvedToday: null });
+          return;
+        }
+        try {
+          const res = await TicketAPI.getTicketsByAssignee(user.id);
+          const list = Array.isArray(res?.data) ? res.data : [];
+          const assignedQueue = list.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
+          const inProg = list.filter((t) => t.status === 'IN_PROGRESS').length;
+          const startDay = new Date();
+          startDay.setHours(0, 0, 0, 0);
+          const resolvedToday = list.filter((t) => {
+            if (t.status !== 'RESOLVED' && t.status !== 'CLOSED') return false;
+            const raw = t.resolvedAt || t.updatedAt;
+            if (!raw) return false;
+            const dt = new Date(raw);
+            return !Number.isNaN(dt.getTime()) && dt >= startDay;
+          }).length;
+          if (!cancelled) {
+            setTechnicianMetrics({ assigned: assignedQueue, inProgress: inProg, resolvedToday });
+          }
+        } catch {
+          if (!cancelled) setTechnicianMetrics({ assigned: null, inProgress: null, resolvedToday: null });
+        }
+        return;
+      }
+
+      if (role !== 'USER' && role !== 'STUDENT') return;
+
       try {
-        const [createdByResult, allResult] = await Promise.allSettled([
+        const [bookingsResult, createdByResult, allResult] = await Promise.allSettled([
+          bookingIdentity.userId
+            ? getMyBookings(bookingIdentity, '')
+            : Promise.resolve([]),
           user.id ? TicketAPI.getTicketsCreatedBy(user.id) : Promise.resolve({ data: [] }),
           TicketAPI.getAllTickets(),
         ]);
 
-        const createdByTickets =
-          createdByResult.status === 'fulfilled' && Array.isArray(createdByResult.value?.data)
-            ? createdByResult.value.data
-            : [];
-        const allTickets =
-          allResult.status === 'fulfilled' && Array.isArray(allResult.value?.data)
-            ? allResult.value.data
-            : [];
+        if (cancelled) return;
+
+        const myBookingsRaw = bookingsResult.status === 'fulfilled' ? bookingsResult.value : [];
+        const myBookings = Array.isArray(myBookingsRaw) ? myBookingsRaw : [];
+        setMyUpcomingBookingCount(countUpcomingBookings(myBookings));
+
+        const createdByTickets = axiosData(createdByResult) ?? [];
+        const allTickets = axiosData(allResult) ?? [];
 
         const ownershipMap = readOwnershipMap();
         const fallbackOwned = allTickets.filter((ticket) =>
@@ -147,33 +231,64 @@ const UserDashboardHome = () => {
           (ticket) => ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS'
         ).length;
 
-        if (!cancelled) {
-          setMyOpenTicketCount(openAndInProgress);
-        }
+        setMyOpenTicketCount(openAndInProgress);
       } catch {
         if (!cancelled) {
           setMyOpenTicketCount(null);
+          setMyUpcomingBookingCount(null);
         }
       }
     };
 
-    loadMyTicketSummary();
+    loadUserSummaries();
 
     return () => {
       cancelled = true;
     };
-  }, [role, user]);
+  }, [role, user, bookingIdentity.userId, metricsNonce, location.key]);
 
   const stats = useMemo(() => {
-    if (role !== 'USER' && role !== 'TECHNICIAN') return statsBase;
-    return statsBase.map((s) =>
-      s.label === 'Unread alerts' || s.hint === 'Notifications'
-        ? { ...s, value: unreadAlerts === null ? '—' : String(unreadAlerts) }
-        : s.label === 'My tickets'
-          ? { ...s, value: myOpenTicketCount === null ? '—' : String(myOpenTicketCount) }
-          : s
-    );
-  }, [statsBase, role, unreadAlerts, myOpenTicketCount]);
+    if (role !== 'USER' && role !== 'STUDENT' && role !== 'TECHNICIAN') return statsBase;
+
+    if (role === 'TECHNICIAN') {
+      const { assigned, inProgress, resolvedToday } = technicianMetrics;
+      return statsBase.map((s) => {
+        if (s.label === 'Unread alerts' || s.hint === 'Notifications') {
+          return { ...s, value: unreadAlerts === null ? '—' : String(unreadAlerts) };
+        }
+        if (s.label === 'Assigned') {
+          return { ...s, value: assigned === null ? '—' : String(assigned) };
+        }
+        if (s.label === 'In progress') {
+          return { ...s, value: inProgress === null ? '—' : String(inProgress) };
+        }
+        if (s.label === 'Resolved today') {
+          return { ...s, value: resolvedToday === null ? '—' : String(resolvedToday) };
+        }
+        return s;
+      });
+    }
+
+    return statsBase.map((s) => {
+      if (s.label === 'Unread alerts' || s.hint === 'Notifications') {
+        return { ...s, value: unreadAlerts === null ? '—' : String(unreadAlerts) };
+      }
+      if (s.label === 'My bookings') {
+        return { ...s, value: myUpcomingBookingCount === null ? '—' : String(myUpcomingBookingCount) };
+      }
+      if (s.label === 'My tickets') {
+        return { ...s, value: myOpenTicketCount === null ? '—' : String(myOpenTicketCount) };
+      }
+      return s;
+    });
+  }, [
+    statsBase,
+    role,
+    unreadAlerts,
+    myOpenTicketCount,
+    myUpcomingBookingCount,
+    technicianMetrics,
+  ]);
 
   const welcomeLine = useMemo(() => {
     if (role === 'TECHNICIAN') return 'Pick up assignments, update ticket status, and keep facilities running smoothly.';
