@@ -2,6 +2,20 @@ import React from 'react';
 import '../styles/TicketCard.css';
 
 const TicketCard = ({ ticket, onClick, onDelete }) => {
+  const getDuration = (start, end) => {
+    const startDate = start ? new Date(start) : null;
+    const endDate = end ? new Date(end) : null;
+    if (!startDate || Number.isNaN(startDate.getTime()) || !endDate || Number.isNaN(endDate.getTime())) {
+      return 'Not started';
+    }
+    const minutes = Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60)));
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h`;
+    return `${minutes}m`;
+  };
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'CRITICAL':
@@ -34,6 +48,13 @@ const TicketCard = ({ ticket, onClick, onDelete }) => {
     }
   };
 
+  const description = ticket.description || '';
+  const trimmedDescription =
+    description.length > 120 ? `${description.substring(0, 117)}...` : description;
+
+  const firstResponse = getDuration(ticket.createdAt, ticket.updatedAt);
+  const resolution = getDuration(ticket.createdAt, ticket.resolvedAt);
+
   return (
     <div 
       className="ticket-card" 
@@ -51,11 +72,16 @@ const TicketCard = ({ ticket, onClick, onDelete }) => {
         >
           ×
         </button>
-      </div>      {ticket.imageBase64 && (
+      </div>
+
+      {ticket.imageBase64 && (
         <div className="ticket-card-image" style={{ marginBottom: "10px" }}>
            <img src={ticket.imageBase64} alt="Thumbnail" style={{ width: "100%", height: "120px", objectFit: "cover", borderRadius: "4px" }} />
         </div>
-      )}      <p className="ticket-description">{ticket.description.substring(0, 100)}...</p>
+      )}
+
+      <p className="ticket-description">{trimmedDescription}</p>
+
       <div className="ticket-meta">
         <span 
           className="badge priority" 
@@ -71,9 +97,15 @@ const TicketCard = ({ ticket, onClick, onDelete }) => {
         </span>
         <span className="badge category">{ticket.category}</span>
       </div>
+
+      <div className="ticket-sla-row">
+        <span className="sla-chip">First response: {firstResponse}</span>
+        <span className="sla-chip">Resolution: {resolution}</span>
+      </div>
+
       <div className="ticket-footer">
         <small>{new Date(ticket.createdAt).toLocaleDateString()}</small>
-        {ticket.location && <small>� {ticket.location}</small>}
+        {ticket.location && <small>{ticket.location}</small>}
       </div>
     </div>
   );

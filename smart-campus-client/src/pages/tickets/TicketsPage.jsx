@@ -1,11 +1,124 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import TicketCard from '../../components/TicketCard';
 import TicketForm from '../../components/TicketForm';
-//import TicketComments from '../../components/TicketComments';
 import TicketAPI from '../../api/ticketAPI';
+import { useAuth } from '../../context/AuthContext';
 import '../../styles/TicketsPage.css';
 
-const TicketsPage = () => {
+const FIRST_RESPONSE_TARGET_HOURS = {
+  CRITICAL: 1,
+  HIGH: 4,
+  MEDIUM: 8,
+  LOW: 24,
+};
+
+const RESOLUTION_TARGET_HOURS = {
+  CRITICAL: 8,
+  HIGH: 24,
+  MEDIUM: 72,
+  LOW: 120,
+};
+
+const OWNERSHIP_STORE_KEY = 'ticketOwnershipByUser';
+
+const formatDateTime = (value) => {
+  if (!value) return 'Not available';
+  return new Date(value).toLocaleString();
+};
+
+const parseDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const durationLabel = (ms) => {
+  if (typeof ms !== 'number' || ms < 0) return 'Not started';
+  const totalMinutes = Math.floor(ms / (1000 * 60));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+};
+
+const getSlaData = (ticket) => {
+  const createdAt = parseDate(ticket.createdAt);
+  const updatedAt = parseDate(ticket.updatedAt);
+  const resolvedAt = parseDate(ticket.resolvedAt);
+  if (!createdAt) {
+    return {
+      firstResponseMs: null,
+      resolutionMs: null,
+      firstResponseBreach: false,
+      resolutionBreach: false,
+      firstResponseTarget: null,
+      resolutionTarget: null,
+    };
+  }
+
+  const firstResponseAt =
+    updatedAt && updatedAt.getTime() > createdAt.getTime() ? updatedAt : null;
+  const closed = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
+
+  const firstResponseMs = firstResponseAt
+    ? firstResponseAt.getTime() - createdAt.getTime()
+    : null;
+  const resolutionMs = resolvedAt
+    ? resolvedAt.getTime() - createdAt.getTime()
+    : closed
+      ? parseDate(ticket.updatedAt)?.getTime() - createdAt.getTime()
+      : null;
+
+  const priority = ticket.priority || 'MEDIUM';
+  const firstResponseTarget = (FIRST_RESPONSE_TARGET_HOURS[priority] || 8) * 60 * 60 * 1000;
+  const resolutionTarget = (RESOLUTION_TARGET_HOURS[priority] || 72) * 60 * 60 * 1000;
+
+  return {
+    firstResponseMs,
+    resolutionMs,
+    firstResponseBreach: typeof firstResponseMs === 'number' && firstResponseMs > firstResponseTarget,
+    resolutionBreach: typeof resolutionMs === 'number' && resolutionMs > resolutionTarget,
+    firstResponseTarget,
+    resolutionTarget,
+  };
+};
+
+const normalizeText = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+const buildUserKey = (user) => user?.id || user?.email || user?.name || null;
+
+const readOwnershipMap = () => {
+  try {
+    const raw = localStorage.getItem(OWNERSHIP_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveOwnership = (ticketId, userKey) => {
+  if (!ticketId || !userKey) return;
+  const map = readOwnershipMap();
+  map[ticketId] = userKey;
+  localStorage.setItem(OWNERSHIP_STORE_KEY, JSON.stringify(map));
+};
+
+const isOwnedByCurrentUser = (ticket, user, ownershipMap) => {
+  const userKey = buildUserKey(user);
+  if (!userKey || !ticket) return false;
+  const loweredName = normalizeText(user.name);
+  const loweredEmail = normalizeText(user.email);
+  const reporterName = normalizeText(ticket.reporterName);
+  const matchesReporterId = user.id && ticket.reporterId === user.id;
+  const matchesName = loweredName && reporterName && reporterName === loweredName;
+  const matchesEmail = loweredEmail && reporterName && reporterName === loweredEmail;
+  return matchesReporterId || matchesName || matchesEmail || ownershipMap[ticket.id] === userKey;
+};
+
+const TicketsPage = ({ scope = 'all' }) => {
+  const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [selectedComments, setSelectedComments] = useState([]);
@@ -14,16 +127,60 @@ const TicketsPage = () => {
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterPriority, setFilterPriority] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [updateNote, setUpdateNote] = useState('');
+  const [updateInternal, setUpdateInternal] = useState(false);
+
+  const canManage = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN';
+  const ownershipMap = useMemo(() => readOwnershipMap(), [tickets.length]);
 
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [scope, user?.id]);
 
   const fetchTickets = async () => {
     try {
       setIsLoading(true);
-      const response = await TicketAPI.getAllTickets();
-      setTickets(response.data);
+      let data = [];
+      if (scope === 'mine' && user?.id) {
+        // Backend currently uses placeholder reporter identity for ticket creation,
+        // so created-by endpoint can be empty for real users. Merge both sources.
+        const [createdByResult, allResult] = await Promise.allSettled([
+          TicketAPI.getTicketsCreatedBy(user.id),
+          TicketAPI.getAllTickets(),
+        ]);
+
+        const createdByTickets =
+          createdByResult.status === 'fulfilled' && Array.isArray(createdByResult.value?.data)
+            ? createdByResult.value.data
+            : [];
+
+        const allTickets =
+          allResult.status === 'fulfilled' && Array.isArray(allResult.value?.data)
+            ? allResult.value.data
+            : [];
+
+        const ownedByFallback = allTickets.filter((ticket) =>
+          isOwnedByCurrentUser(ticket, user, readOwnershipMap())
+        );
+
+        const merged = [...createdByTickets, ...ownedByFallback];
+        const uniqueById = [];
+        const seen = new Set();
+        for (const ticket of merged) {
+          if (ticket?.id && !seen.has(ticket.id)) {
+            seen.add(ticket.id);
+            uniqueById.push(ticket);
+          }
+        }
+        data = uniqueById;
+      } else if (scope === 'assigned' && user?.id) {
+        const assignedResponse = await TicketAPI.getTicketsByAssignee(user.id);
+        data = Array.isArray(assignedResponse.data) ? assignedResponse.data : [];
+      } else {
+        const response = await TicketAPI.getAllTickets();
+        data = Array.isArray(response.data) ? response.data : [];
+      }
+      setTickets(data);
     } catch (error) {
       console.error('Error fetching tickets:', error);
       alert('Failed to load tickets');
@@ -32,26 +189,30 @@ const TicketsPage = () => {
     }
   };
 
- {/*} const handleTicketClick = async (ticket) => {
+  const handleTicketClick = async (ticket) => {
     setSelectedTicket(ticket);
     setShowForm(false);
     try {
       const response = await TicketAPI.getTicketComments(ticket.id);
       setSelectedComments(response.data || []);
-    } catch(err) {
+    } catch (err) {
       console.error('Error fetching comments:', err);
       setSelectedComments([]);
     }
-  };*/}
+  };
 
-  const handleAddComment = async (commentData) => {
+  const handleAddComment = async (commentData, silent = false) => {
     try {
       const response = await TicketAPI.addComment(selectedTicket.id, commentData);
-      setSelectedComments([...selectedComments, response.data]);
-      alert("Comment added successfully!");
+      setSelectedComments((prev) => [...prev, response.data]);
+      if (!silent) {
+        alert('Update posted successfully.');
+      }
+      return true;
     } catch (err) {
       console.error('Error adding comment:', err);
-      alert("Failed to add comment.");
+      alert('Failed to post update.');
+      return false;
     }
   };
 
@@ -79,8 +240,12 @@ const TicketsPage = () => {
     try {
       setIsLoading(true);
       const response = await TicketAPI.createTicket(formData);
-      setTickets([...tickets, response.data]);
+      if (scope === 'all' || scope === 'mine') {
+        setTickets((prev) => [response.data, ...prev]);
+      }
+      saveOwnership(response.data?.id, buildUserKey(user));
       setShowForm(false);
+      setSelectedTicket(response.data);
       alert('Ticket created successfully!');
     } catch (error) {
       console.error('Error creating ticket:', error);
@@ -94,7 +259,7 @@ const TicketsPage = () => {
     try {
       setIsLoading(true);
       const response = await TicketAPI.updateTicket(selectedTicket.id, formData);
-      setTickets(tickets.map((t) => (t.id === selectedTicket.id ? response.data : t)));
+      setTickets((prev) => prev.map((t) => (t.id === selectedTicket.id ? response.data : t)));
       setSelectedTicket(response.data);
       setShowForm(false);
       alert('Ticket updated successfully!');
@@ -107,14 +272,34 @@ const TicketsPage = () => {
   };
 
   const handleStatusChange = async (newStatus) => {
-    if(!selectedTicket) return;
+    if (!selectedTicket) return;
     try {
-      const response = await TicketAPI.updateTicket(selectedTicket.id, { ...selectedTicket, status: newStatus });
-      setTickets(tickets.map((t) => (t.id === selectedTicket.id ? response.data : t)));
+      const response = await TicketAPI.updateTicket(selectedTicket.id, {
+        status: newStatus,
+      });
+      setTickets((prev) => prev.map((t) => (t.id === selectedTicket.id ? response.data : t)));
       setSelectedTicket(response.data);
-    } catch(err) {
-      console.error("Failed to update status", err);
-      alert("Failed to update status");
+    } catch (err) {
+      console.error('Failed to update status', err);
+      alert('Failed to update status');
+    }
+  };
+
+  const handleTechnicianUpdate = async () => {
+    if (!selectedTicket || !updateNote.trim()) return;
+    const success = await handleAddComment(
+      {
+        content: updateNote.trim(),
+        internal: updateInternal,
+        authorName: user?.name || 'Technician',
+      },
+      true
+    );
+    if (success) {
+      setUpdateNote('');
+      setUpdateInternal(false);
+      await fetchTickets();
+      alert('Technician update posted.');
     }
   };
 
@@ -122,7 +307,7 @@ const TicketsPage = () => {
     if (window.confirm('Are you sure you want to delete this ticket?')) {
       try {
         await TicketAPI.deleteTicket(id);
-        setTickets(tickets.filter((t) => t.id !== id));
+        setTickets((prev) => prev.filter((t) => t.id !== id));
         if (selectedTicket?.id === id) {
           setSelectedTicket(null);
         }
@@ -135,21 +320,78 @@ const TicketsPage = () => {
   };
 
   const filteredTickets = getFilteredTickets();
+  const selectedSla = selectedTicket ? getSlaData(selectedTicket) : null;
+
+  const slaSummary = useMemo(() => {
+    const withResponse = tickets
+      .map((ticket) => getSlaData(ticket))
+      .filter((sla) => typeof sla.firstResponseMs === 'number');
+    const withResolution = tickets
+      .map((ticket) => getSlaData(ticket))
+      .filter((sla) => typeof sla.resolutionMs === 'number');
+
+    const avg = (arr, field) => {
+      if (!arr.length) return null;
+      const total = arr.reduce((sum, item) => sum + item[field], 0);
+      return total / arr.length;
+    };
+
+    return {
+      avgFirstResponseMs: avg(withResponse, 'firstResponseMs'),
+      avgResolutionMs: avg(withResolution, 'resolutionMs'),
+      firstResponseBreachCount: withResponse.filter((x) => x.firstResponseBreach).length,
+      resolutionBreachCount: withResolution.filter((x) => x.resolutionBreach).length,
+    };
+  }, [tickets]);
+
+  const pageTitle =
+    scope === 'mine'
+      ? 'My Maintenance Tickets'
+      : scope === 'assigned'
+        ? 'My Assigned Tickets'
+        : 'Maintenance & Incident Ticketing';
+
+  const canCreate = scope !== 'assigned';
 
   return (
     <div className="tickets-page">
       <div className="page-header">
-        <h1>??? Maintenance & Incident Ticketing</h1>
-        <button
-          className="create-btn"
-          onClick={() => {
-            setSelectedTicket(null);
-            setShowForm(!showForm);
-          }}
-        >
-          {showForm ? '? Cancel' : '+ Report Incident'}
-        </button>
+        <div>
+          <h1>{pageTitle}</h1>
+          <p className="tickets-subtitle">
+            Service-level timers included: time-to-first-response and time-to-resolution.
+          </p>
+        </div>
+        {canCreate ? (
+          <button
+            className="primary-btn"
+            onClick={() => {
+              setSelectedTicket(null);
+              setShowForm(!showForm);
+            }}
+          >
+            {showForm ? 'Cancel' : 'Report Incident'}
+          </button>
+        ) : null}
       </div>
+
+      <section className="sla-summary-grid" aria-label="SLA summary">
+        <article className="sla-summary-card">
+          <p>Average first response</p>
+          <strong>{durationLabel(slaSummary.avgFirstResponseMs)}</strong>
+          <small>Breaches: {slaSummary.firstResponseBreachCount}</small>
+        </article>
+        <article className="sla-summary-card">
+          <p>Average resolution</p>
+          <strong>{durationLabel(slaSummary.avgResolutionMs)}</strong>
+          <small>Breaches: {slaSummary.resolutionBreachCount}</small>
+        </article>
+        <article className="sla-summary-card">
+          <p>Total in this view</p>
+          <strong>{tickets.length}</strong>
+          <small>Filtered by your access scope</small>
+        </article>
+      </section>
 
       {showForm && (
         <div className="form-container">
@@ -164,24 +406,24 @@ const TicketsPage = () => {
 
       {selectedTicket && !showForm && (
         <div className="detail-container">
-          <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
+          <div className="detail-header">
             <h2>{selectedTicket.title}</h2>
             <button
-              style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#888' }}
+              className="close-modal"
               onClick={() => setSelectedTicket(null)}
             >
-              ?
+              x
             </button>
           </div>
-          
-          <div className="detail-content" style={{ display: 'flex', gap: '2rem', marginTop: '1rem', flexDirection: 'column' }}>
-            
-            <div className="status-update-section" style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', padding: '10px', borderRadius: '8px' }}>
-              <label style={{ fontWeight: 'bold' }}>Quick Status Update (Admin/Tech):</label>
+
+          <div className="detail-content">
+            <div className="status-update-section">
+              <label>Quick status update:</label>
               <select 
                 value={selectedTicket.status} 
                 onChange={(e) => handleStatusChange(e.target.value)}
-                style={{ padding: '5px 10px', borderRadius: '4px', border: '1px solid #ccc' }}
+                className="status-select"
+                disabled={!canManage}
               >
                 <option value="OPEN">Open</option>
                 <option value="IN_PROGRESS">In Progress</option>
@@ -189,19 +431,41 @@ const TicketsPage = () => {
                 <option value="RESOLVED">Resolved</option>
                 <option value="CLOSED">Closed</option>
               </select>
+              {!canManage ? <small>Only admin or technician can change status.</small> : null}
             </div>
 
-            <div style={{ display: 'flex', gap: '2rem' }}>
-              <div className="detail-info" style={{ flex: '1' }}>
+            {selectedSla ? (
+              <section className="sla-metrics-panel" aria-label="Service-level timers">
+                <div className="sla-metric-item">
+                  <p>Time to first response</p>
+                  <strong>{durationLabel(selectedSla.firstResponseMs)}</strong>
+                  <span className={`sla-badge ${selectedSla.firstResponseBreach ? 'breach' : 'on-track'}`}>
+                    {selectedSla.firstResponseBreach ? 'Breach' : 'On track'}
+                  </span>
+                  <small>Target: {durationLabel(selectedSla.firstResponseTarget)}</small>
+                </div>
+                <div className="sla-metric-item">
+                  <p>Time to resolution</p>
+                  <strong>{durationLabel(selectedSla.resolutionMs)}</strong>
+                  <span className={`sla-badge ${selectedSla.resolutionBreach ? 'breach' : 'on-track'}`}>
+                    {selectedSla.resolutionBreach ? 'Breach' : 'On track'}
+                  </span>
+                  <small>Target: {durationLabel(selectedSla.resolutionTarget)}</small>
+                </div>
+              </section>
+            ) : null}
+
+            <div className="detail-grid">
+              <div className="detail-info">
                 <div className="info-group">
                   <label>Status:</label>
-                  <span className="badge" style={{ padding: '4px 8px', borderRadius: '4px', background: '#e3f2fd', fontWeight: 'bold' }}>{selectedTicket.status}</span>
+                  <span className="badge">{selectedTicket.status}</span>
                 </div>
                 <div className="info-group">
                   <label>Priority:</label>
-                  <span className="badge" style={{ padding: '4px 8px', borderRadius: '4px', background: '#fff3e0', fontWeight: 'bold' }}>{selectedTicket.priority}</span>
+                  <span className="badge">{selectedTicket.priority}</span>
                 </div>
-                <div className="info-group" style={{ marginTop: '10px' }}>
+                <div className="info-group">
                   <label>Category:</label>
                   <span>{selectedTicket.category}</span>
                 </div>
@@ -211,53 +475,117 @@ const TicketsPage = () => {
                 </div>
                 <div className="info-group">
                   <label>Assigned To:</label>
-                  <span>{selectedTicket.assignedTo || 'Unassigned'}</span>
+                  <span>{selectedTicket.assignedToName || 'Unassigned'}</span>
                 </div>
                 <div className="info-group">
                   <label>Created By:</label>
-                  <span>{selectedTicket.reporterName || selectedTicket.createdBy || 'Unknown'}</span>
+                  <span>{selectedTicket.reporterName || 'Unknown'}</span>
                 </div>
                 <div className="info-group">
                   <label>Created At:</label>
-                  <span>{new Date(selectedTicket.createdAt).toLocaleString()}</span>
+                  <span>{formatDateTime(selectedTicket.createdAt)}</span>
+                </div>
+                <div className="info-group">
+                  <label>Resolved At:</label>
+                  <span>{formatDateTime(selectedTicket.resolvedAt)}</span>
                 </div>
               </div>
 
-              <div className="detail-description" style={{ flex: '2', background: '#fcfcfc', padding: '1.5rem', borderRadius: '8px' }}>
+              <div className="detail-description">
                 <h3>Description</h3>
-                <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{selectedTicket.description}</p>
+                <p>{selectedTicket.description}</p>
 
                 {selectedTicket.imageBase64 && (
-                  <div style={{ marginTop: '1rem' }}>
+                  <div className="attachment-block">
                     <h3>Report Image</h3>
-                    <img src={selectedTicket.imageBase64} alt="Incident" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '8px', border: '1px solid #ddd' }} />
+                    <img src={selectedTicket.imageBase64} alt="Incident" className="detail-image" />
                   </div>
                 )}
                 
-                {selectedTicket.resolution && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <h3>Resolution</h3>
-                    <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{selectedTicket.resolution}</p>
+                {selectedTicket.resolutionNotes && (
+                  <div className="attachment-block">
+                    <h3>Resolution Notes</h3>
+                    <p>{selectedTicket.resolutionNotes}</p>
                   </div>
                 )}
+
+                {Array.isArray(selectedTicket.imageGalleryBase64) && selectedTicket.imageGalleryBase64.length > 0 ? (
+                  <div className="attachment-block">
+                    <h3>Attachments</h3>
+                    <div className="attachment-grid">
+                      {selectedTicket.imageGalleryBase64.map((image, idx) => (
+                        <img key={`${selectedTicket.id}-gallery-${idx}`} src={image} alt={`Attachment ${idx + 1}`} className="detail-image" />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 
-           {/*} <div className="comments-section" style={{ marginTop: '2rem' }}>
-               <TicketComments ticketId={selectedTicket.id} comments={selectedComments} onAddComment={handleAddComment} />
-            </div>*/}
+            <section className="comment-section">
+              <h3>Technician updates</h3>
+              {canManage ? (
+                <div className="comment-editor">
+                  <textarea
+                    value={updateNote}
+                    onChange={(e) => setUpdateNote(e.target.value)}
+                    placeholder="Write progress update, investigation findings, or handover note"
+                    rows={3}
+                  />
+                  <label className="internal-toggle">
+                    <input
+                      type="checkbox"
+                      checked={updateInternal}
+                      onChange={(e) => setUpdateInternal(e.target.checked)}
+                    />
+                    Internal note
+                  </label>
+                  <button type="button" className="primary-btn" onClick={handleTechnicianUpdate}>
+                    Post update
+                  </button>
+                </div>
+              ) : null}
+              <div className="comment-list">
+                {selectedComments.length > 0 ? (
+                  selectedComments
+                    .slice()
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .map((comment) => (
+                      <article key={comment.id} className="comment-item">
+                        <header>
+                          <strong>{comment.authorName || 'Team member'}</strong>
+                          <small>{formatDateTime(comment.createdAt)}</small>
+                        </header>
+                        <p>{comment.content}</p>
+                      </article>
+                    ))
+                ) : (
+                  <p className="no-updates">No updates yet.</p>
+                )}
+              </div>
+            </section>
 
-            <div className="detail-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <div className="detail-actions">
+              <button
+                className="primary-btn"
+                type="button"
+                onClick={() => {
+                  setSelectedTicket(null);
+                  setShowForm(false);
+                }}
+              >
+                Back to all tickets
+              </button>
               <button
                 className="edit-btn"
-                style={{ padding: '8px 16px', background: '#1976d2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                disabled={!canManage}
                 onClick={() => setShowForm(true)}
               >
                 Edit Details
               </button>
               <button
                 className="delete-btn"
-                style={{ padding: '8px 16px', background: '#d32f2f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                disabled={!canManage}
                 onClick={() => handleDeleteTicket(selectedTicket.id)}
               >
                 Delete Ticket
@@ -317,7 +645,7 @@ const TicketsPage = () => {
               ))
             ) : (
               <div className="no-tickets" style={{ textAlign: 'center', width: '100%', padding: '2rem', color: 'gray' }}>
-                 No tickets found matching your criteria.
+                No tickets found matching your criteria.
               </div>
             )}
           </div>

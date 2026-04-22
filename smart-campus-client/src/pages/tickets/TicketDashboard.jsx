@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import TicketAPI from '../../api/ticketAPI';
 import '../../styles/TicketDashboard.css';
 
+const toDuration = (ms) => {
+  if (typeof ms !== 'number' || ms < 0) return 'Not started';
+  const minutes = Math.floor(ms / (1000 * 60));
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}m`;
+};
+
 const TicketDashboard = () => {
   const [stats, setStats] = useState({
     totalTickets: 0,
@@ -12,6 +22,25 @@ const TicketDashboard = () => {
   });
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const avgSla = tickets.reduce(
+    (acc, ticket) => {
+      const createdAt = ticket.createdAt ? new Date(ticket.createdAt).getTime() : null;
+      const updatedAt = ticket.updatedAt ? new Date(ticket.updatedAt).getTime() : null;
+      const resolvedAt = ticket.resolvedAt ? new Date(ticket.resolvedAt).getTime() : null;
+
+      if (createdAt && updatedAt && updatedAt > createdAt) {
+        acc.firstResponseTotal += updatedAt - createdAt;
+        acc.firstResponseCount += 1;
+      }
+      if (createdAt && resolvedAt && resolvedAt > createdAt) {
+        acc.resolutionTotal += resolvedAt - createdAt;
+        acc.resolutionCount += 1;
+      }
+      return acc;
+    },
+    { firstResponseTotal: 0, firstResponseCount: 0, resolutionTotal: 0, resolutionCount: 0 }
+  );
 
   useEffect(() => {
     fetchDashboardData();
@@ -94,6 +123,34 @@ const TicketDashboard = () => {
               <div className="stat-content">
                 <p className="stat-label">Resolved</p>
                 <p className="stat-value">{stats.resolvedTickets}</p>
+              </div>
+            </div>
+
+            <div className="stat-card total">
+              <div className="stat-icon">⏱️</div>
+              <div className="stat-content">
+                <p className="stat-label">Avg First Response</p>
+                <p className="stat-value">
+                  {toDuration(
+                    avgSla.firstResponseCount > 0
+                      ? avgSla.firstResponseTotal / avgSla.firstResponseCount
+                      : null
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="stat-card resolved">
+              <div className="stat-icon">🛠️</div>
+              <div className="stat-content">
+                <p className="stat-label">Avg Resolution</p>
+                <p className="stat-value">
+                  {toDuration(
+                    avgSla.resolutionCount > 0
+                      ? avgSla.resolutionTotal / avgSla.resolutionCount
+                      : null
+                  )}
+                </p>
               </div>
             </div>
           </div>

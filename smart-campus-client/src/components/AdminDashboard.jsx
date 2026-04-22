@@ -5,6 +5,7 @@ import logo from '../assets/logo.png';
 import AdminUserManagementPanel from './AdminUserManagementPanel';
 import AdminFacilitiesPanel from './AdminFacilitiesPanel';
 import BookingManagementPage from '../pages/bookings/BookingManagementPage';
+import TicketsPage from '../pages/tickets/TicketsPage';
 import './DashboardShell.css';
 import './AdminDashboard.css';
 
@@ -171,6 +172,9 @@ const AdminDashboard = () => {
     }
     if (activeNav === 'bookings') {
       return <BookingManagementPage initialMode="ADMIN" showModeSwitch={false} />;
+    }
+    if (activeNav === 'incidents') {
+      return <TicketsPage scope="all" />;
     }
     if (activeNav === 'overview') {
       return (

@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import TicketAPI from '../../api/ticketAPI';
 import userDashboardHero from '../../assets/user-dashboard-hero.jpg';
 
 const IconCalendar = () => (
@@ -71,22 +72,108 @@ const STATS_BY_ROLE = {
   ],
 };
 
+const OWNERSHIP_STORE_KEY = 'ticketOwnershipByUser';
+
+const readOwnershipMap = () => {
+  try {
+    const raw = localStorage.getItem(OWNERSHIP_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const normalizeText = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+const isOwnedByCurrentUser = (ticket, user, ownershipMap) => {
+  if (!ticket || !user) return false;
+  const userKey = user.id || user.email || user.name;
+  const reporterName = normalizeText(ticket.reporterName);
+  const name = normalizeText(user.name);
+  const email = normalizeText(user.email);
+  return (
+    (user.id && ticket.reporterId === user.id) ||
+    (name && reporterName && name === reporterName) ||
+    (email && reporterName && email === reporterName) ||
+    ownershipMap[ticket.id] === userKey
+  );
+};
+
 const UserDashboardHome = () => {
   const { user } = useAuth();
   const { unreadAlerts } = useOutletContext() || {};
+  const [myOpenTicketCount, setMyOpenTicketCount] = useState(null);
 
   const role = user?.role || 'USER';
   const quickActions = QUICK_BY_ROLE[role] || QUICK_BY_ROLE.USER;
   const statsBase = STATS_BY_ROLE[role] || STATS_BY_ROLE.USER;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMyTicketSummary = async () => {
+      if (!user || role !== 'USER') return;
+      try {
+        const [createdByResult, allResult] = await Promise.allSettled([
+          user.id ? TicketAPI.getTicketsCreatedBy(user.id) : Promise.resolve({ data: [] }),
+          TicketAPI.getAllTickets(),
+        ]);
+
+        const createdByTickets =
+          createdByResult.status === 'fulfilled' && Array.isArray(createdByResult.value?.data)
+            ? createdByResult.value.data
+            : [];
+        const allTickets =
+          allResult.status === 'fulfilled' && Array.isArray(allResult.value?.data)
+            ? allResult.value.data
+            : [];
+
+        const ownershipMap = readOwnershipMap();
+        const fallbackOwned = allTickets.filter((ticket) =>
+          isOwnedByCurrentUser(ticket, user, ownershipMap)
+        );
+
+        const merged = [...createdByTickets, ...fallbackOwned];
+        const unique = [];
+        const seen = new Set();
+        for (const ticket of merged) {
+          if (ticket?.id && !seen.has(ticket.id)) {
+            seen.add(ticket.id);
+            unique.push(ticket);
+          }
+        }
+
+        const openAndInProgress = unique.filter(
+          (ticket) => ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS'
+        ).length;
+
+        if (!cancelled) {
+          setMyOpenTicketCount(openAndInProgress);
+        }
+      } catch {
+        if (!cancelled) {
+          setMyOpenTicketCount(null);
+        }
+      }
+    };
+
+    loadMyTicketSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [role, user]);
 
   const stats = useMemo(() => {
     if (role !== 'USER' && role !== 'TECHNICIAN') return statsBase;
     return statsBase.map((s) =>
       s.label === 'Unread alerts' || s.hint === 'Notifications'
         ? { ...s, value: unreadAlerts === null ? '—' : String(unreadAlerts) }
-        : s
+        : s.label === 'My tickets'
+          ? { ...s, value: myOpenTicketCount === null ? '—' : String(myOpenTicketCount) }
+          : s
     );
-  }, [statsBase, role, unreadAlerts]);
+  }, [statsBase, role, unreadAlerts, myOpenTicketCount]);
 
   const welcomeLine = useMemo(() => {
     if (role === 'TECHNICIAN') return 'Pick up assignments, update ticket status, and keep facilities running smoothly.';
