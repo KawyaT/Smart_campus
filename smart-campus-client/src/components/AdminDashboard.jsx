@@ -4,6 +4,7 @@ import { usersAPI } from '../api/users';
 import logo from '../assets/logo.png';
 import AdminUserManagementPanel from './AdminUserManagementPanel';
 import AdminFacilitiesPanel from './AdminFacilitiesPanel';
+import BookingManagementPage from '../pages/bookings/BookingManagementPage';
 import './DashboardShell.css';
 import './AdminDashboard.css';
 
@@ -167,6 +168,9 @@ const AdminDashboard = () => {
     }
     if (activeNav === 'facilities') {
       return <AdminFacilitiesPanel />;
+    }
+    if (activeNav === 'bookings') {
+      return <BookingManagementPage initialMode="ADMIN" showModeSwitch={false} />;
     }
     if (activeNav === 'overview') {
       return (

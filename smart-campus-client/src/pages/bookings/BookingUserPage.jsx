@@ -1,14 +1,14 @@
 export default function BookingUserPage({
   resources,
   selectedResource,
+  bookingWindowStart,
+  bookingWindowEnd,
   isLoadingResources,
   form,
   isSubmitting,
   statusFilter,
   isLoadingBookings,
   sortedBookings,
-  user,
-  onUserChange,
   onFormChange,
   onResourceSelect,
   onSubmit,
@@ -20,38 +20,49 @@ export default function BookingUserPage({
   error,
   success,
 }) {
+  const pendingCount = sortedBookings.filter((booking) => booking.status === 'PENDING').length
+  const approvedCount = sortedBookings.filter((booking) => booking.status === 'APPROVED').length
+  const rejectedCount = sortedBookings.filter((booking) => booking.status === 'REJECTED').length
+  const cancelledCount = sortedBookings.filter((booking) => booking.status === 'CANCELLED').length
+
   return (
     <>
-      <div className="identity-panel card reveal">
-        <h2>Current User Context</h2>
-        <p>These fields are used as request headers until full auth is connected.</p>
-        <div className="identity-grid">
-          <label>
-            User ID
-            <input
-              name="userId"
-              value={user.userId}
-              onChange={(event) => onUserChange('userId', event.target.value)}
-              placeholder="student-001"
-            />
-          </label>
-          <label>
-            User Name (optional)
-            <input
-              name="userName"
-              value={user.userName}
-              onChange={(event) => onUserChange('userName', event.target.value)}
-              placeholder="Jane Doe"
-            />
-          </label>
-        </div>
-      </div>
+      <section className="booking-user-overview reveal delay-1" aria-label="Booking status summary">
+        <article className="booking-overview-card total">
+          <p>Total in view</p>
+          <strong>{sortedBookings.length}</strong>
+        </article>
+        <article className="booking-overview-card pending">
+          <p>Pending</p>
+          <strong>{pendingCount}</strong>
+        </article>
+        <article className="booking-overview-card approved">
+          <p>Approved</p>
+          <strong>{approvedCount}</strong>
+        </article>
+        <article className="booking-overview-card rejected">
+          <p>Rejected / Cancelled</p>
+          <strong>{rejectedCount + cancelledCount}</strong>
+        </article>
+      </section>
 
       <div className="booking-content">
         <article className="card reveal delay-1">
           <h2>{isEditMode ? 'Update Pending Booking' : 'Request New Booking'}</h2>
+
+          {selectedResource ? (
+            <div className="resource-spotlight">
+              <span className="resource-spotlight-kicker">Selected Resource</span>
+              <strong>{selectedResource.name}</strong>
+              <p>
+                {selectedResource.location || 'Location unavailable'}
+                {selectedResource.capacity ? ` | Capacity: ${selectedResource.capacity}` : ''}
+              </p>
+            </div>
+          ) : null}
+
           <form className="booking-form" onSubmit={onSubmit}>
-            <label>
+            <label className="booking-field booking-field--full">
               Select Resource
               <select
                 name="resourceId"
@@ -76,28 +87,45 @@ export default function BookingUserPage({
               </select>
             </label>
 
-            <label>
+            <label className="booking-field booking-field--full">
               Date
               <input name="bookingDate" type="date" value={form.bookingDate} onChange={onFormChange} required />
             </label>
 
-            <div className="time-grid">
-              <label>
+            <div className="time-grid booking-field booking-field--full">
+              <label className="booking-field">
                 Start Time
-                <input name="startTime" type="time" value={form.startTime} onChange={onFormChange} required />
+                <input
+                  name="startTime"
+                  type="time"
+                  min={bookingWindowStart}
+                  max={bookingWindowEnd}
+                  value={form.startTime}
+                  onChange={onFormChange}
+                  required
+                />
               </label>
-              <label>
+              <label className="booking-field">
                 End Time
-                <input name="endTime" type="time" value={form.endTime} onChange={onFormChange} required />
+                <input
+                  name="endTime"
+                  type="time"
+                  min={bookingWindowStart}
+                  max={bookingWindowEnd}
+                  value={form.endTime}
+                  onChange={onFormChange}
+                  required
+                />
               </label>
+              <small className="field-hint">Allowed booking time: 08:30 AM to 05:00 PM</small>
             </div>
 
-            <label>
+            <label className="booking-field booking-field--full">
               Purpose
               <textarea name="purpose" value={form.purpose} onChange={onFormChange} rows={3} required />
             </label>
 
-            <label>
+            <label className="booking-field booking-field--full">
               Expected Attendees (optional)
               <input
                 name="expectedAttendees"
@@ -149,17 +177,20 @@ export default function BookingUserPage({
           {!isLoadingBookings && sortedBookings.length > 0 ? (
             <div className="booking-list">
               {sortedBookings.map((booking) => (
-                <div key={booking.id} className="booking-item">
+                <div key={booking.id} className={`booking-item booking-item-${booking.status.toLowerCase()}`}>
                   <div className="booking-item-top">
                     <h3>{booking.resourceName || booking.resourceId}</h3>
                     <span className={`status-chip ${booking.status.toLowerCase()}`}>{booking.status}</span>
                   </div>
 
-                  <p className="booking-meta">
-                    {booking.bookingDate} | {booking.startTime} - {booking.endTime}
-                  </p>
-                  <p className="booking-meta">Purpose: {booking.purpose}</p>
-                  <p className="booking-meta">Attendees: {booking.expectedAttendees ?? 'N/A'}</p>
+                  <div className="booking-meta-grid">
+                    <p className="booking-meta booking-meta-strong">
+                      {booking.bookingDate} | {booking.startTime} - {booking.endTime}
+                    </p>
+                    <p className="booking-meta">Purpose: {booking.purpose}</p>
+                    <p className="booking-meta">Attendees: {booking.expectedAttendees ?? 'N/A'}</p>
+                  </div>
+
                   {booking.decisionReason ? <p className="booking-meta">Decision: {booking.decisionReason}</p> : null}
                   {booking.cancellationReason ? (
                     <p className="booking-meta">Cancellation: {booking.cancellationReason}</p>

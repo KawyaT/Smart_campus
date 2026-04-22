@@ -1,10 +1,15 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
+const API_ORIGIN = import.meta.env.VITE_API_ORIGIN ?? 'http://localhost:8081'
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? '/api' : `${API_ORIGIN}/api`)
 
 async function request(path, { method = 'GET', headers = {}, body } = {}) {
+  const token = localStorage.getItem('token')
+
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -29,7 +34,7 @@ function userHeaders(user) {
 }
 
 export function createBooking(payload, user) {
-  return request('/api/bookings', {
+  return request('/bookings', {
     method: 'POST',
     headers: userHeaders(user),
     body: payload,
@@ -38,20 +43,20 @@ export function createBooking(payload, user) {
 
 export function getMyBookings(user, status) {
   const query = status ? `?status=${encodeURIComponent(status)}` : ''
-  return request(`/api/bookings/my${query}`, {
+  return request(`/bookings/my${query}`, {
     headers: userHeaders(user),
   })
 }
 
 export function cancelBooking(bookingId, user) {
-  return request(`/api/bookings/my/${bookingId}/cancel`, {
+  return request(`/bookings/my/${bookingId}/cancel`, {
     method: 'PATCH',
     headers: userHeaders(user),
   })
 }
 
 export function updateMyBooking(bookingId, payload, user) {
-  return request(`/api/bookings/my/${bookingId}`, {
+  return request(`/bookings/my/${bookingId}`, {
     method: 'PATCH',
     headers: userHeaders(user),
     body: payload,
@@ -64,15 +69,15 @@ export function getAllBookingsForAdmin(status, requesterId) {
   if (requesterId) params.set('requesterId', requesterId)
   const query = params.toString()
 
-  return request(`/api/bookings/admin${query ? `?${query}` : ''}`)
+  return request(`/bookings/admin${query ? `?${query}` : ''}`)
 }
 
 export function getAdminBookingAnalytics() {
-  return request('/api/bookings/admin/analytics')
+  return request('/bookings/admin/analytics')
 }
 
 export function approveBooking(bookingId, user, reason) {
-  return request(`/api/bookings/admin/${bookingId}/approve`, {
+  return request(`/bookings/admin/${bookingId}/approve`, {
     method: 'PATCH',
     headers: userHeaders(user),
     body: { reason: reason || null },
@@ -80,7 +85,7 @@ export function approveBooking(bookingId, user, reason) {
 }
 
 export function rejectBooking(bookingId, user, reason) {
-  return request(`/api/bookings/admin/${bookingId}/reject`, {
+  return request(`/bookings/admin/${bookingId}/reject`, {
     method: 'PATCH',
     headers: userHeaders(user),
     body: { reason },
@@ -88,5 +93,5 @@ export function rejectBooking(bookingId, user, reason) {
 }
 
 export function getAvailableResources() {
-  return request('/api/resources')
+  return request('/resources')
 }

@@ -12,7 +12,6 @@ import AdminDashboard from './components/AdminDashboard';
 import UserDashboardLayout from './components/UserDashboardLayout';
 import UserDashboardHome from './pages/user/UserDashboardHome';
 import BookResourcePage from './pages/user/BookResourcePage';
-import MyBookingsPage from './pages/user/MyBookingsPage';
 import ReportIssuePage from './pages/user/ReportIssuePage';
 import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
 import TicketDashboard from "./pages/tickets/TicketDashboard";
@@ -206,6 +205,14 @@ function App() {
               }
             />
             <Route
+              path="/admin/bookings"
+              element={
+                <AdminDashboardRoute>
+                  <BookingManagementPage initialMode="ADMIN" showModeSwitch={false} />
+                </AdminDashboardRoute>
+              }
+            />
+            <Route
               path="/user-dashboard"
               element={
                 <UserDashboardRoute>
@@ -215,7 +222,7 @@ function App() {
             >
               <Route index element={<UserDashboardHome />} />
               <Route path="book-resource" element={<ResourcesPage />} />
-              <Route path="my-bookings" element={<MyBookingsPage />} />
+              <Route path="my-bookings" element={<BookingManagementPage initialMode="USER" showModeSwitch={false} />} />
               <Route path="report-issue" element={<ReportIssuePage />} />
             </Route>
 

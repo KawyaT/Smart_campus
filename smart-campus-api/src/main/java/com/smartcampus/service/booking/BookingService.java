@@ -39,6 +39,8 @@ public class BookingService {
 
     private static final int TOP_RESOURCE_LIMIT = 5;
     private static final int TOP_HOUR_LIMIT = 6;
+    private static final LocalTime BOOKING_WINDOW_START = LocalTime.of(8, 30);
+    private static final LocalTime BOOKING_WINDOW_END = LocalTime.of(17, 0);
 
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
@@ -250,6 +252,10 @@ public class BookingService {
     private void validateTimeRange(LocalTime startTime, LocalTime endTime) {
         if (!startTime.isBefore(endTime)) {
             throw new IllegalArgumentException("Start time must be before end time");
+        }
+
+        if (startTime.isBefore(BOOKING_WINDOW_START) || endTime.isAfter(BOOKING_WINDOW_END)) {
+            throw new IllegalArgumentException("Booking time must be between 08:30 and 17:00");
         }
     }
 

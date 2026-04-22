@@ -10,6 +10,7 @@ import {
   rejectBooking,
   updateMyBooking,
 } from '../../api/bookingApi'
+import { useAuth } from '../../context/AuthContext'
 import BookingAdminPage from './BookingAdminPage'
 import BookingUserPage from './BookingUserPage'
 import './BookingManagementPage.css'
@@ -24,9 +25,12 @@ const initialForm = {
   expectedAttendees: '',
 }
 
-export default function BookingManagementPage() {
-  const [mode, setMode] = useState('USER')
-  const [user, setUser] = useState({ userId: 'student-001', userName: 'Default Student' })
+const BOOKING_WINDOW_START = '08:30'
+const BOOKING_WINDOW_END = '17:00'
+
+export default function BookingManagementPage({ initialMode = 'USER', showModeSwitch = true }) {
+  const { user: authUser } = useAuth()
+  const [mode, setMode] = useState(initialMode)
   const [statusFilter, setStatusFilter] = useState('')
   const [adminStatusFilter, setAdminStatusFilter] = useState('')
   const [adminRequesterFilter, setAdminRequesterFilter] = useState('')
@@ -47,6 +51,14 @@ export default function BookingManagementPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const loggedIdentity = useMemo(
+    () => ({
+      userId: authUser?.id || authUser?.email || '',
+      userName: authUser?.name || authUser?.email || '',
+    }),
+    [authUser],
+  )
+
   useEffect(() => {
     if (mode === 'USER') {
       loadResources()
@@ -57,7 +69,7 @@ export default function BookingManagementPage() {
     loadAdminBookings()
     loadAdminAnalytics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, statusFilter, user.userId, adminStatusFilter, adminRequesterFilter])
+  }, [mode, statusFilter, loggedIdentity.userId, adminStatusFilter, adminRequesterFilter])
 
   async function loadResources() {
     setIsLoadingResources(true)
@@ -81,7 +93,7 @@ export default function BookingManagementPage() {
   }, [bookings])
 
   async function loadBookings() {
-    if (!user.userId.trim()) {
+    if (!loggedIdentity.userId.trim()) {
       setBookings([])
       return
     }
@@ -90,7 +102,10 @@ export default function BookingManagementPage() {
     setError('')
 
     try {
-      const data = await getMyBookings({ userId: user.userId.trim(), userName: user.userName.trim() }, statusFilter)
+      const data = await getMyBookings(
+        { userId: loggedIdentity.userId.trim(), userName: loggedIdentity.userName.trim() },
+        statusFilter,
+      )
       setBookings(data)
     } catch (loadError) {
       setError(loadError.message)
@@ -135,12 +150,25 @@ export default function BookingManagementPage() {
     setError('')
     setSuccess('')
 
-    if (!user.userId.trim()) {
-      setError('User ID is required.')
+    if (!loggedIdentity.userId.trim()) {
+      setError('No authenticated user found. Please sign in again.')
       return
     }
 
     const attendees = form.expectedAttendees ? Number(form.expectedAttendees) : null
+
+    if (form.startTime && form.endTime) {
+      if (form.startTime < BOOKING_WINDOW_START || form.endTime > BOOKING_WINDOW_END) {
+        setError('Booking time must be between 08:30 and 17:00.')
+        return
+      }
+
+      if (form.startTime >= form.endTime) {
+        setError('Start time must be before end time.')
+        return
+      }
+    }
+
     const payload = {
       resourceId: form.resourceId.trim(),
       resourceName: form.resourceName.trim() || null,
@@ -156,14 +184,14 @@ export default function BookingManagementPage() {
     try {
       if (editingBookingId) {
         await updateMyBooking(editingBookingId, payload, {
-          userId: user.userId.trim(),
-          userName: user.userName.trim(),
+          userId: loggedIdentity.userId.trim(),
+          userName: loggedIdentity.userName.trim(),
         })
         setSuccess('Booking updated successfully.')
       } else {
         const created = await createBooking(payload, {
-          userId: user.userId.trim(),
-          userName: user.userName.trim(),
+          userId: loggedIdentity.userId.trim(),
+          userName: loggedIdentity.userName.trim(),
         })
         setSuccess(`Booking created as ${created.status}.`)
       }
@@ -184,8 +212,8 @@ export default function BookingManagementPage() {
 
     try {
       await cancelBooking(bookingId, {
-        userId: user.userId.trim(),
-        userName: user.userName.trim(),
+        userId: loggedIdentity.userId.trim(),
+        userName: loggedIdentity.userName.trim(),
       })
       setSuccess('Booking cancelled successfully.')
       await loadBookings()
@@ -198,8 +226,8 @@ export default function BookingManagementPage() {
     setError('')
     setSuccess('')
 
-    if (!user.userId.trim()) {
-      setError('Admin User ID is required.')
+    if (!loggedIdentity.userId.trim()) {
+      setError('No authenticated user found. Please sign in again.')
       return
     }
 
@@ -207,8 +235,8 @@ export default function BookingManagementPage() {
       await approveBooking(
         bookingId,
         {
-          userId: user.userId.trim(),
-          userName: user.userName.trim(),
+          userId: loggedIdentity.userId.trim(),
+          userName: loggedIdentity.userName.trim(),
         },
         decisionInputs[bookingId],
       )
@@ -225,8 +253,8 @@ export default function BookingManagementPage() {
     setError('')
     setSuccess('')
 
-    if (!user.userId.trim()) {
-      setError('Admin User ID is required.')
+    if (!loggedIdentity.userId.trim()) {
+      setError('No authenticated user found. Please sign in again.')
       return
     }
 
@@ -240,8 +268,8 @@ export default function BookingManagementPage() {
       await rejectBooking(
         bookingId,
         {
-          userId: user.userId.trim(),
-          userName: user.userName.trim(),
+          userId: loggedIdentity.userId.trim(),
+          userName: loggedIdentity.userName.trim(),
         },
         reason,
       )
@@ -310,9 +338,11 @@ export default function BookingManagementPage() {
       <header className="booking-header">
         <div className="header-top">
           <p className="kicker">Smart Campus</p>
-          <button className="mode-switch" type="button" onClick={handleModeToggle}>
-            Switch to {mode === 'USER' ? 'Admin' : 'User'}
-          </button>
+          {showModeSwitch ? (
+            <button className="mode-switch" type="button" onClick={handleModeToggle}>
+              Switch to {mode === 'USER' ? 'Admin' : 'User'}
+            </button>
+          ) : null}
         </div>
         <h1>{mode === 'USER' ? 'Booking Management' : 'Admin Booking Review'}</h1>
         <p className="subtitle">
@@ -326,14 +356,14 @@ export default function BookingManagementPage() {
         <BookingUserPage
           resources={resources}
           selectedResource={resources.find((resource) => resource.id === form.resourceId) || null}
+          bookingWindowStart={BOOKING_WINDOW_START}
+          bookingWindowEnd={BOOKING_WINDOW_END}
           isLoadingResources={isLoadingResources}
           form={form}
           isSubmitting={isSubmitting}
           statusFilter={statusFilter}
           isLoadingBookings={isLoadingBookings}
           sortedBookings={sortedBookings}
-          user={user}
-          onUserChange={(field, value) => setUser((previous) => ({ ...previous, [field]: value }))}
           onFormChange={updateFormField}
           onResourceSelect={handleResourceSelect}
           onSubmit={handleCreateBooking}
