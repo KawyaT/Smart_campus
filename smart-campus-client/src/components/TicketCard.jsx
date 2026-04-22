@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/TicketCard.css';
 
-const TicketCard = ({ ticket, onClick, onDelete }) => {
+const TicketCard = ({ ticket, onClick, onDelete, canDelete = true }) => {
   const getDuration = (start, end) => {
     const startDate = start ? new Date(start) : null;
     const endDate = end ? new Date(end) : null;
@@ -63,15 +63,17 @@ const TicketCard = ({ ticket, onClick, onDelete }) => {
     >
       <div className="ticket-header">
         <h3>{ticket.title}</h3>
-        <button 
-          className="delete-btn" 
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(ticket.id);
-          }}
-        >
-          ×
-        </button>
+        {canDelete ? (
+          <button
+            className="delete-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(ticket.id);
+            }}
+          >
+            ×
+          </button>
+        ) : null}
       </div>
 
       {ticket.imageBase64 && (

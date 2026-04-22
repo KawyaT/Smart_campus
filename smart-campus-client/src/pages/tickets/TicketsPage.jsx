@@ -65,11 +65,13 @@ const getSlaData = (ticket) => {
   const firstResponseMs = firstResponseAt
     ? firstResponseAt.getTime() - createdAt.getTime()
     : null;
-  const resolutionMs = resolvedAt
-    ? resolvedAt.getTime() - createdAt.getTime()
+  const now = Date.now();
+  const resolutionEnd = resolvedAt
+    ? resolvedAt.getTime()
     : closed
-      ? parseDate(ticket.updatedAt)?.getTime() - createdAt.getTime()
-      : null;
+      ? (parseDate(ticket.updatedAt)?.getTime() || now)
+      : (updatedAt?.getTime() || now);
+  const resolutionMs = Math.max(0, resolutionEnd - createdAt.getTime());
 
   const priority = ticket.priority || 'MEDIUM';
   const firstResponseTarget = (FIRST_RESPONSE_TARGET_HOURS[priority] || 8) * 60 * 60 * 1000;
@@ -130,7 +132,9 @@ const TicketsPage = ({ scope = 'all' }) => {
   const [updateNote, setUpdateNote] = useState('');
   const [updateInternal, setUpdateInternal] = useState(false);
 
-  const canManage = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN';
+  const userRole = String(user?.role || '').toUpperCase();
+  const canManage = userRole === 'ADMIN' || userRole === 'TECHNICIAN';
+  const canEditOrDelete = userRole !== 'STUDENT';
   const ownershipMap = useMemo(() => readOwnershipMap(), [tickets.length]);
 
   useEffect(() => {
@@ -400,6 +404,7 @@ const TicketsPage = ({ scope = 'all' }) => {
             initialData={selectedTicket}
             onSubmit={selectedTicket ? handleUpdateTicket : handleCreateTicket}
             isLoading={isLoading}
+            canManage={canManage}
           />
         </div>
       )}
@@ -567,7 +572,7 @@ const TicketsPage = ({ scope = 'all' }) => {
 
             <div className="detail-actions">
               <button
-                className="primary-btn"
+                className="ticket-back-btn"
                 type="button"
                 onClick={() => {
                   setSelectedTicket(null);
@@ -577,20 +582,24 @@ const TicketsPage = ({ scope = 'all' }) => {
                 Back to all tickets
               </button>
               <button
-                className="edit-btn"
-                disabled={!canManage}
+                className="ticket-edit-btn"
+                disabled={!canEditOrDelete}
                 onClick={() => setShowForm(true)}
               >
-                Edit Details
+                Edit details
               </button>
               <button
-                className="delete-btn"
-                disabled={!canManage}
+                className="ticket-delete-btn"
+                disabled={!canEditOrDelete}
                 onClick={() => handleDeleteTicket(selectedTicket.id)}
               >
-                Delete Ticket
+                Delete ticket
               </button>
             </div>
+
+            {!canEditOrDelete ? (
+              <small className="ticket-action-note">Edit and delete are disabled for student view.</small>
+            ) : null}
 
           </div>
         </div>
@@ -641,6 +650,7 @@ const TicketsPage = ({ scope = 'all' }) => {
                   ticket={ticket}
                   onClick={() => handleTicketClick(ticket)}
                   onDelete={handleDeleteTicket}
+                  canDelete={canEditOrDelete}
                 />
               ))
             ) : (

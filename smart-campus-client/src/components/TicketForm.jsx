@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import '../styles/TicketForm.css';
 
-const TicketForm = ({ initialData, onSubmit, isLoading }) => {
+const MIN_IMAGES_REQUIRED = 3;
+const MAX_IMAGES_ALLOWED = 6;
+
+const TicketForm = ({ initialData, onSubmit, isLoading, canManage = false }) => {
+  const isEditMode = Boolean(initialData?.id);
+  const initialGallery = Array.isArray(initialData?.imageGalleryBase64)
+    ? initialData.imageGalleryBase64.filter(Boolean)
+    : initialData?.imageBase64
+      ? [initialData.imageBase64]
+      : [];
+
   const [formData, setFormData] = useState(
     initialData || {
       title: '',
@@ -18,7 +28,15 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
       assignedToId: '',
       assignedToName: '',
       resolutionNotes: '',
+      imageGalleryBase64: [],
     }
+  );
+  const [galleryImages, setGalleryImages] = useState(initialGallery);
+  const [formErrors, setFormErrors] = useState({});
+
+  const imageCountText = useMemo(
+    () => `${galleryImages.length}/${MAX_IMAGES_ALLOWED} images selected`,
+    [galleryImages.length]
   );
 
   const handleChange = (e) => {
@@ -29,43 +47,105 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
     }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          imageBase64: reader.result,
-        }));
-      };
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
+    });
+
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const nonImages = files.some((file) => !file.type.startsWith('image/'));
+    if (nonImages) {
+      setFormErrors((prev) => ({
+        ...prev,
+        images: 'Only image files are allowed.',
+      }));
+      return;
     }
+
+    try {
+      const encoded = await Promise.all(files.map((file) => toBase64(file)));
+      setGalleryImages((prev) => {
+        const merged = [...prev, ...encoded].slice(0, MAX_IMAGES_ALLOWED);
+        setFormData((current) => ({
+          ...current,
+          imageBase64: merged[0] || '',
+          imageGalleryBase64: merged,
+        }));
+        return merged;
+      });
+      setFormErrors((prev) => ({ ...prev, images: '' }));
+    } catch {
+      setFormErrors((prev) => ({
+        ...prev,
+        images: 'Failed to process selected images. Please try again.',
+      }));
+    }
+
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setGalleryImages((prev) => {
+      const next = prev.filter((_, idx) => idx !== indexToRemove);
+      setFormData((current) => ({
+        ...current,
+        imageBase64: next[0] || '',
+        imageGalleryBase64: next,
+      }));
+      return next;
+    });
+  };
+
+  const validate = () => {
+    const errors = {};
+    if (!formData.title?.trim()) errors.title = 'Title is required.';
+    if ((formData.title || '').trim().length > 120) errors.title = 'Title must be 120 characters or less.';
+    if (!formData.description?.trim()) errors.description = 'Description is required.';
+    if ((formData.description || '').trim().length < 15) errors.description = 'Description must be at least 15 characters.';
+    if (!formData.location?.trim()) errors.location = 'Location is required.';
+    if (Number(formData.estimatedHours || 0) < 0) errors.estimatedHours = 'Estimated hours cannot be negative.';
+    if (!isEditMode && galleryImages.length < MIN_IMAGES_REQUIRED) {
+      errors.images = `Please upload at least ${MIN_IMAGES_REQUIRED} images for a new incident report.`;
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validate()) return;
+
     const payload = {
-      title: formData.title,
-      description: formData.description,
+      title: formData.title.trim(),
+      description: formData.description.trim(),
       category: formData.category,
       priority: formData.priority,
       severity: formData.severity,
-      location: formData.location,
+      location: formData.location.trim(),
       estimatedHours: Number(formData.estimatedHours || 0),
-      department: formData.department || null,
-      facility: formData.facility || null,
-      imageBase64: formData.imageBase64 || null,
+      department: formData.department?.trim() || null,
+      facility: formData.facility?.trim() || null,
+      imageBase64: galleryImages[0] || null,
+      imageGalleryBase64: galleryImages,
       status: formData.status,
-      assignedToId: formData.assignedToId || null,
-      assignedToName: formData.assignedToName || null,
-      resolutionNotes: formData.resolutionNotes || null,
+      assignedToId: formData.assignedToId?.trim() || null,
+      assignedToName: formData.assignedToName?.trim() || null,
+      resolutionNotes: formData.resolutionNotes?.trim() || null,
     };
+
     onSubmit(payload);
   };
 
   return (
     <form className="ticket-form" onSubmit={handleSubmit}>
+      <h3 className="form-section-title">Incident details</h3>
+
       <div className="form-group">
         <label htmlFor="title">Title *</label>
         <input
@@ -77,6 +157,7 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
           required
           placeholder="Enter ticket title"
         />
+        {formErrors.title ? <small className="form-error">{formErrors.title}</small> : null}
       </div>
 
       <div className="form-group">
@@ -90,6 +171,7 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
           rows="5"
           placeholder="Enter detailed description"
         />
+        {formErrors.description ? <small className="form-error">{formErrors.description}</small> : null}
       </div>
 
       <div className="form-row">
@@ -145,23 +227,40 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
       </div>
 
       <div className="form-group">
-        <label>Upload Image</label>
-        <input 
-          type="file" 
-          accept="image/*" 
-          onChange={handleImageChange} 
-          style={{ padding: '10px 0' }}
+        <label htmlFor="ticket-images">Incident images *</label>
+        <input
+          id="ticket-images"
+          className="image-input"
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageChange}
         />
-        {formData.imageBase64 && (
-          <div style={{ marginTop: '10px' }}>
-            <img 
-              src={formData.imageBase64} 
-              alt="Ticket Attachment" 
-              style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }} 
-            />
+        <small className="field-help">
+          Upload at least {MIN_IMAGES_REQUIRED} images for new tickets. Maximum {MAX_IMAGES_ALLOWED} images.
+        </small>
+        <small className="field-help">{imageCountText}</small>
+        {formErrors.images ? <small className="form-error">{formErrors.images}</small> : null}
+
+        {galleryImages.length > 0 ? (
+          <div className="image-preview-grid">
+            {galleryImages.map((image, index) => (
+              <div className="image-preview-item" key={`ticket-preview-${index}`}>
+                <img src={image} alt={`Ticket attachment ${index + 1}`} className="image-preview" />
+                <button
+                  type="button"
+                  className="image-remove-btn"
+                  onClick={() => handleRemoveImage(index)}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
           </div>
-        )}
+        ) : null}
       </div>
+
+      <h3 className="form-section-title">Tracking details</h3>
 
       <div className="form-row">
         <div className="form-group">
@@ -171,6 +270,7 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
             name="status"
             value={formData.status}
             onChange={handleChange}
+            disabled={!canManage}
           >
             <option value="OPEN">Open</option>
             <option value="IN_PROGRESS">In Progress</option>
@@ -178,6 +278,7 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
             <option value="RESOLVED">Resolved</option>
             <option value="CLOSED">Closed</option>
           </select>
+          {!canManage ? <small className="field-help">Only admin or technician can change status.</small> : null}
         </div>
 
         <div className="form-group">
@@ -189,7 +290,9 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
             value={formData.location}
             onChange={handleChange}
             placeholder="e.g., Building A, Room 101"
+            required
           />
+          {formErrors.location ? <small className="form-error">{formErrors.location}</small> : null}
         </div>
       </div>
 
@@ -216,6 +319,7 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
             onChange={handleChange}
             min="0"
           />
+          {formErrors.estimatedHours ? <small className="form-error">{formErrors.estimatedHours}</small> : null}
         </div>
       </div>
 
@@ -257,8 +361,8 @@ const TicketForm = ({ initialData, onSubmit, isLoading }) => {
         />
       </div>
 
-      <button type="submit" disabled={isLoading} className="submit-btn" style={{marginTop: '20px'}}>
-        {isLoading ? 'Saving...' : 'Submit Ticket'}
+      <button type="submit" disabled={isLoading} className="submit-btn">
+        {isLoading ? 'Saving...' : isEditMode ? 'Update ticket' : 'Submit ticket'}
       </button>
     </form>
   );
