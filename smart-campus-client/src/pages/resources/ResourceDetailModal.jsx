@@ -1,23 +1,13 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { getColors } from '../../theme/colors';
+import AvailabilityHeatmap from './AvailabilityHeatmap';
 
 const typeConfig = {
   LAB:          { label: 'Lab', iconPath: 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7' },
   LECTURE_HALL: { label: 'Lecture hall', iconPath: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10' },
   MEETING_ROOM: { label: 'Meeting room', iconPath: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 7a4 4 0 100 8 4 4 0 000-8z' },
   EQUIPMENT:    { label: 'Equipment', iconPath: 'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z' },
-};
-
-const DAY_ORDER = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-
-const formatTime = (time) => {
-  if (!time) return '';
-  return time.slice(0, 5);
-};
-
-const formatDay = (day) => {
-  return day.charAt(0) + day.slice(1).toLowerCase();
 };
 
 export default function ResourceDetailModal({ resource, onClose, onEdit, isAdmin }) {
@@ -32,12 +22,6 @@ export default function ResourceDetailModal({ resource, onClose, onEdit, isAdmin
     MEETING_ROOM: { bg: isDark ? '#1e0c3a' : '#ede9fe', text: isDark ? '#a78bfa' : '#5b21b6' },
     EQUIPMENT:    { bg: isDark ? '#2a1c0a' : '#fef3c7', text: isDark ? '#fbbf24' : '#92400e' },
   }[resource.type] || { bg: '#1e2736', text: '#8899b4' };
-
-  const sortedWindows = resource.availabilityWindows
-    ? [...resource.availabilityWindows].sort(
-      (a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)
-    )
-    : [];
 
   return (
     <div
@@ -197,69 +181,33 @@ export default function ResourceDetailModal({ resource, onClose, onEdit, isAdmin
             </div>
           )}
 
-          {/* Availability schedule */}
+          {/* Availability heatmap */}
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '11px', color: c.textMuted, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              Availability schedule
-            </div>
-
-            {sortedWindows.length === 0 ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+            }}>
               <div style={{
-                background: isDark ? '#0d1117' : '#f8fafc',
-                border: `1px solid ${c.border}`,
-                borderRadius: '10px',
-                padding: '16px',
-                textAlign: 'center',
+                fontSize: '11px',
                 color: c.textMuted,
-                fontSize: '13px',
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
               }}>
-                No availability schedule set
+                Weekly availability
               </div>
-            ) : (
-              <div style={{
-                background: isDark ? '#0d1117' : '#f8fafc',
-                border: `1px solid ${c.border}`,
-                borderRadius: '10px',
-                overflow: 'hidden',
+              <span style={{
+                fontSize: '11px',
+                color: isDark ? '#60a5fa' : '#2563eb',
+                background: isDark ? '#0c1f3a' : '#dbeafe',
+                padding: '2px 8px',
+                borderRadius: '20px',
               }}>
-                {sortedWindows.map((w, i) => (
-                  <div
-                    key={w.day}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '11px 16px',
-                      borderBottom: i < sortedWindows.length - 1 ? `1px solid ${c.border}` : 'none',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{
-                        width: '7px',
-                        height: '7px',
-                        borderRadius: '50%',
-                        background: c.success,
-                        display: 'inline-block',
-                        flexShrink: 0,
-                      }} />
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: c.textPrimary, width: '100px' }}>
-                        {formatDay(w.day)}
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: '13px',
-                      color: c.textSecondary,
-                      fontFamily: 'monospace',
-                      background: isDark ? '#1a2740' : '#e2e8f0',
-                      padding: '3px 10px',
-                      borderRadius: '6px',
-                    }}>
-                      {formatTime(w.openTime)} - {formatTime(w.closeTime)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+                Hover cells to explore
+              </span>
+            </div>
+            <AvailabilityHeatmap availabilityWindows={resource.availabilityWindows} />
           </div>
 
           {/* Footer buttons */}

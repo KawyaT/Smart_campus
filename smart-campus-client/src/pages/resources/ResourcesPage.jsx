@@ -105,47 +105,81 @@ export default function ResourcesPage() {
       icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
   ];
 
+  const pageShellStyle = {
+    flex: 1,
+    padding: '28px 32px 48px',
+    marginLeft: '220px',
+    minWidth: '0',
+    overflow: 'hidden',
+    maxWidth: '1280px',
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: c.pageBg }}>
 
-      <div style={{ flex: 1, padding: '28px 32px 48px', marginLeft: '220px', minWidth: '0', overflow: 'hidden' }}>
+      <div style={pageShellStyle}>
+        <div style={{
+          border: `1px solid ${c.border}`,
+          borderRadius: '18px',
+          padding: '26px',
+          marginBottom: '20px',
+          background: isDark
+            ? 'linear-gradient(145deg, rgba(24, 37, 48, 0.95), rgba(17, 26, 34, 0.95))'
+            : 'linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 250, 0.96))',
+          boxShadow: isDark
+            ? '0 12px 30px rgba(0, 0, 0, 0.35)'
+            : '0 14px 34px rgba(15, 23, 42, 0.08)',
+        }}>
 
-        {/* Top bar */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 600, color: c.textPrimary, marginBottom: '4px' }}>
-              Facilities &amp; Assets
-            </h1>
-            <p style={{ fontSize: '13px', color: c.textMuted }}>
-              Manage campus rooms, labs and equipment
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          </div>
-        </div>
-
-        {/* Stat cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
-          {stats.map((s, i) => (
-            <div key={i} style={{
-              background: c.cardBg, border: `1px solid ${c.border}`,
-              borderRadius: '12px', padding: '16px 18px',
-            }}>
-              <div style={{
-                width: '36px', height: '36px', borderRadius: '8px',
-                background: s.iconBg, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', marginBottom: '12px',
+          {/* Top bar */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '16px' }}>
+            <div>
+              <h1 style={{
+                margin: 0,
+                fontSize: '2rem',
+                letterSpacing: '-0.02em',
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #155e75 0%, #1f8a70 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
               }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.iconColor} strokeWidth="2">
-                  <path d={s.icon} />
-                </svg>
-              </div>
-              <div style={{ fontSize: '24px', fontWeight: 600, color: c.textPrimary, marginBottom: '2px' }}>
-                {s.value}
-              </div>
-              <div style={{ fontSize: '12px', color: c.textMuted }}>{s.label}</div>
+                Facilities &amp; Assets
+              </h1>
+              <p style={{ margin: '12px 0 0', color: '#607585', fontSize: '0.98rem', letterSpacing: '0.01em' }}>
+                Manage campus rooms, labs and equipment
+              </p>
             </div>
-          ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            </div>
+          </div>
+
+          {/* Stat cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{
+                background: c.cardBg,
+                border: `1px solid ${c.border}`,
+                borderRadius: '14px',
+                padding: '16px 18px',
+                boxShadow: isDark ? '0 10px 22px rgba(0, 0, 0, 0.28)' : '0 10px 24px rgba(15, 23, 42, 0.08)',
+              }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '8px',
+                  background: s.iconBg, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', marginBottom: '12px',
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.iconColor} strokeWidth="2">
+                    <path d={s.icon} />
+                  </svg>
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 600, color: c.textPrimary, marginBottom: '2px' }}>
+                  {s.value}
+                </div>
+                <div style={{ fontSize: '12px', color: c.textMuted }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Filters */}
