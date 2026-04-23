@@ -1,121 +1,276 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import Login from './components/Login';
+import Register from './components/Register';
+import OAuthSuccess from './components/OAuthSuccess';
+import Dashboard from './components/Dashboard';
+import AdminDashboard from './components/AdminDashboard';
+import UserDashboardLayout from './components/UserDashboardLayout';
+import UserDashboardHome from './pages/user/UserDashboardHome';
+import ReportIssuePage from './pages/user/ReportIssuePage';
+import { AdminDashboardRoute, UserDashboardRoute } from './components/ProtectedRoleRoute';
+import TicketDashboard from "./pages/tickets/TicketDashboard";
+import BookingManagementPage from './pages/bookings/BookingManagementPage';
+import ResourcesPage from './pages/resources/ResourcesPage';
+import PublicLayout from './pages/public/PublicLayout';
+import HomePage from './pages/public/HomePage';
+import AboutPage from './pages/public/AboutPage';
+import ServicesPage from './pages/public/ServicesPage';
+import ContactPage from './pages/public/ContactPage';
+//import BookingsPage from "./pages/bookings/BookingsPage";
+//import SettingsPage from "./pages/notifications/SettingsPage";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+const homePathForUser = (user) =>
+  user?.role === 'ADMIN' ? '/admin-dashboard' : '/user-dashboard';
+
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return children;
+  }
+  if (isAuthenticated) {
+    return <Navigate to={homePathForUser(user)} replace />;
+  }
+
+  return children;
+};
+
+// Campus Operations Dashboard Component
+const CampusOperationsDashboard = () => {
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem("darkMode") === "true";
+    setDarkMode(savedDarkMode);
+    if (savedDarkMode) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem("darkMode", newDarkMode);
+    if (newDarkMode) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className={`app-container ${darkMode ? "dark-mode" : ""}`}>
+      <aside className={`sidebar glass-effect ${sidebarOpen ? "open" : "closed"}`}>
+        <div className="logo-container">
+          <div className="logo-icon">SC</div>
+          <h2>Smart Campus</h2>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        
+        <nav className="nav-menu">
+          <div className="nav-section">OPERATIONS</div>
+          
+          <button 
+            className={`nav-item ${activeTab === "dashboard" ? "active" : ""}`}
+            onClick={() => setActiveTab("dashboard")}
+          >
+            <span className="icon">📊</span>
+            <span className="label">Dashboard</span>
+          </button>
+          
+          <button 
+            className={`nav-item ${activeTab === "tickets" ? "active" : ""}`}
+            onClick={() => setActiveTab("tickets")}
+          >
+            <span className="icon">🎟️</span>
+            <span className="label">All Tickets</span>
+          </button>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <button
+            className={`nav-item ${activeTab === "bookings" ? "active" : ""}`}
+            onClick={() => setActiveTab("bookings")}
+          >
+            <span className="icon">📅</span>
+            <span className="label">Bookings</span>
+          </button>
+          
+          <button
+            className={`nav-item ${activeTab === "settings" ? "active" : ""}`}
+            onClick={() => setActiveTab("settings")}
+          >
+            <span className="icon">⚙️</span>
+            <span className="label">Settings</span>
+          </button>
+        </nav>
+        
+        <div className="user-profile">
+          <div className="avatar">JD</div>
+          <div className="user-info">
+            <p className="name">John Doe</p>
+            <p className="role">Operations Admin</p>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </aside>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <main className="main-content">
+        <div className="top-nav glass-effect">
+          <div className="nav-left">
+            <button 
+              className="menu-toggle"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              ☰
+            </button>
+            <div className="search-bar">
+              <span className="search-icon">🔍</span>
+              <input type="text" placeholder="Search campus operations..." />
+            </div>
+          </div>
+          <div className="top-actions">
+            <button 
+              className="theme-toggle"
+              onClick={toggleDarkMode}
+              title="Toggle dark mode"
+            >
+              {darkMode ? "☀️" : "🌙"}
+            </button>
+            <button className="notification-btn">🔔</button>
+          </div>
+        </div>
+
+        <div className="content-wrapper scrollable">
+          {activeTab === "dashboard" && <TicketDashboard />}
+          {activeTab === "bookings" && <BookingManagementPage />}
+          {/*{activeTab === "tickets" && <TicketsPage />}*/}
+          {/*{activeTab === "settings" && <SettingsPage />}*/}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+// Simple Bookings View for backward compatibility
+const SimpleBookingsView = () => {
+  return (
+    <main className="app-shell">
+      <BookingManagementPage />
+    </main>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <Router>
+          <div className="app" data-theme="smartuni">
+            <ToastContainer position="top-right" autoClose={2500} pauseOnHover theme="light" />
+            <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/oauth-success" element={<OAuthSuccess />} />
+
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="about" element={<AboutPage />} />
+              <Route path="services" element={<ServicesPage />} />
+              <Route path="contact" element={<ContactPage />} />
+            </Route>
+
+            <Route
+              path="/admin-dashboard"
+              element={
+                <AdminDashboardRoute>
+                  <AdminDashboard />
+                </AdminDashboardRoute>
+              }
+            />
+            <Route
+              path="/admin/bookings"
+              element={
+                <AdminDashboardRoute>
+                  <BookingManagementPage initialMode="ADMIN" showModeSwitch={false} />
+                </AdminDashboardRoute>
+              }
+            />
+            <Route
+              path="/user-dashboard"
+              element={
+                <UserDashboardRoute>
+                  <UserDashboardLayout />
+                </UserDashboardRoute>
+              }
+            >
+              <Route index element={<UserDashboardHome />} />
+              <Route path="book-resource" element={<ResourcesPage />} />
+              <Route path="my-bookings" element={<BookingManagementPage initialMode="USER" showModeSwitch={false} />} />
+              <Route path="report-issue" element={<ReportIssuePage />} />
+            </Route>
+
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Campus Operations Routes */}
+            <Route
+              path="/campus-operations"
+              element={
+                <ProtectedRoute>
+                  <CampusOperationsDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Simple Bookings View for backward compatibility */}
+            <Route
+              path="/bookings-simple"
+              element={
+                <ProtectedRoute>
+                  <SimpleBookingsView />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;

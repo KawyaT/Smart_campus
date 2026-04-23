@@ -1,0 +1,91 @@
+.ticket-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  padding: 8px 4px;
+  margin-top: 20px;
+  animation: fadeInGrid 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInGrid {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fbfc 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+  border: 2px dashed rgba(37, 99, 235, 0.2);
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: moveGrid 20s linear infinite;
+}
+
+@keyframes moveGrid {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(37, 99, 235, 0.1);
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container { 
+  color: #d32f2f; 
+  border-color: rgba(211, 47, 47, 0.2);
+}
+
+.no-tickets {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 40px;
+  background: linear-gradient(135deg, #f7faf8 0%, #eef3fa 100%);
+  border-radius: 16px;
+  border: 2px dashed rgba(21, 94, 117, 0.25);
+  color: #7a8f9b;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 640px) {
+  .ticket-list { grid-template-columns: 1fr; }
+}
+

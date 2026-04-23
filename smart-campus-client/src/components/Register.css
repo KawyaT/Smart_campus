@@ -1,0 +1,410 @@
+/* Register.jsx — same layout as login; scoped under .register-page */
+
+.register-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #f3f4f6;
+  color: #0f172a;
+}
+
+.register-page *,
+.register-page *::before,
+.register-page *::after {
+  box-sizing: border-box;
+}
+
+.register-page .auth-card {
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 640px) {
+  .register-page .auth-card {
+    padding: 2.5rem;
+  }
+}
+
+.register-page .login-nav-home {
+  margin: 0 0 1.125rem;
+}
+
+.register-page .login-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #1e40af;
+  text-decoration: none;
+  background: linear-gradient(145deg, #eff6ff 0%, #f0f9ff 55%, #ffffff 100%);
+  border: 1px solid rgba(147, 197, 253, 0.95);
+  border-radius: 9999px;
+  box-shadow:
+    0 1px 2px rgba(37, 99, 235, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.register-page .login-home-link:hover {
+  color: #1d4ed8;
+  border-color: #93c5fd;
+  box-shadow:
+    0 6px 18px rgba(37, 99, 235, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+}
+
+.register-page .login-home-link:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 8px rgba(37, 99, 235, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.register-page .login-home-link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.register-page .login-home-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #0ea5e9 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.register-page .login-home-link-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.register-page .login-home-link-text {
+  padding-right: 0.125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-page .login-home-link,
+  .register-page .login-home-link:hover,
+  .register-page .login-home-link:active {
+    transition: none;
+    transform: none;
+  }
+}
+
+.register-page .auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.register-page .auth-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+}
+
+.register-page .auth-subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.register-page .auth-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+}
+
+.register-page .auth-error .auth-input-icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.register-page .auth-error .auth-input-icon path {
+  stroke: #dc2626;
+}
+
+.register-page .auth-google-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.register-page .auth-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.register-page .auth-google-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  box-shadow: none;
+}
+
+.register-page .auth-google-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.register-page .auth-google-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.register-page .auth-google-btn:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.register-page .auth-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.register-page .auth-google-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.register-page .auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+}
+
+.register-page .auth-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.register-page .auth-divider-text {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.register-page .auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.register-page .auth-field label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.register-page .auth-field-hint {
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.register-page .auth-input-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0 0.875rem;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.register-page .auth-input-wrap:focus-within {
+  border-color: #2563eb;
+  box-shadow: none;
+}
+
+.register-page .auth-input-wrap .auth-input-icon {
+  flex-shrink: 0;
+  align-self: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #2563eb;
+}
+
+.register-page .auth-input-wrap .auth-input-icon path {
+  stroke: #2563eb;
+}
+
+.register-page .auth-input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #0f172a;
+  background: transparent;
+  background-clip: padding-box;
+  border: none;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+}
+
+.register-page .auth-input:-webkit-autofill,
+.register-page .auth-input:-webkit-autofill:hover,
+.register-page .auth-input:-webkit-autofill:focus,
+.register-page .auth-input:-webkit-autofill:active {
+  -webkit-box-shadow: inset 0 0 0 1000px #fff;
+  box-shadow: inset 0 0 0 1000px #fff;
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  transition: background-color 99999s ease-out 0s;
+}
+
+.register-page .auth-input:-moz-autofill {
+  background-color: #fff;
+  color: #0f172a;
+}
+
+.register-page .auth-input::placeholder {
+  font-style: italic;
+  color: #9ca3af;
+}
+
+.register-page .auth-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.register-page .auth-input-wrap--textarea {
+  align-items: flex-start;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  min-height: auto;
+}
+
+.register-page .auth-textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+  line-height: 1.4;
+  padding: 0.25rem 0;
+}
+
+.register-page .auth-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 3rem;
+  margin-top: 0.25rem;
+  padding: 0 1rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff !important;
+  background: #2563eb !important;
+  border: none !important;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.register-page .auth-submit:hover:not(:disabled) {
+  background: #1d4ed8 !important;
+}
+
+.register-page .auth-submit:disabled {
+  background: #93c5fd !important;
+  cursor: not-allowed;
+}
+
+.register-page .auth-submit-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.register-page .auth-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.register-page .auth-footer p {
+  margin: 0;
+}
+
+.register-page .auth-link {
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.register-page .auth-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}

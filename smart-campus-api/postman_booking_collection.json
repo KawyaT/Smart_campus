@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "Smart Campus - Booking Management API",
+    "description": "Complete CRUD operations for booking management system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "student-001"
+              },
+              {
+                "key": "X-User-Name",
+                "value": "John Doe"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceId\": \"{{resourceId}}\",\n  \"resourceName\": \"Conference Room A\",\n  \"bookingDate\": \"2026-04-21\",\n  \"startTime\": \"14:00\",\n  \"endTime\": \"15:30\",\n  \"purpose\": \"Team meeting to discuss Q2 roadmap\",\n  \"expectedAttendees\": 8\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "bookings"
+              ]
+            },
+            "description": "Creates a new booking request. Returns 201 with BookingResponse including generated bookingId."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All My Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "student-001"
+              },
+              {
+                "key": "X-User-Name",
+                "value": "John Doe"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/bookings/my",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "bookings",
+                "my"
+              ]
+            },
+            "description": "Retrieves all bookings for the authenticated user, sorted by date descending."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Bookings Filtered by Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "student-001"
+              },
+              {
+                "key": "X-User-Name",
+                "value": "John Doe"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/bookings/my?status=PENDING",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "bookings",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            },
+            "description": "Retrieves bookings filtered by status. Possible values: PENDING, APPROVED, REJECTED, CANCELLED"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Booking by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "student-001"
+              },
+              {
+                "key": "X-User-Name",
+                "value": "John Doe"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/bookings/my/{{bookingId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "bookings",
+                "my",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Retrieves a specific booking by ID. Only the booking owner can access it."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "student-001"
+              },
+              {
+                "key": "X-User-Name",
+                "value": "John Doe"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/bookings/my/{{bookingId}}/cancel",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "bookings",
+                "my",
+                "{{bookingId}}",
+                "cancel"
+              ]
+            },
+            "description": "Cancels an APPROVED booking. Returns 200 with updated BookingResponse."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Resources",
+      "item": [
+        {
+          "name": "Get All Resources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/resources",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "resources"
+              ]
+            },
+            "description": "Retrieves all available resources for booking selection."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Verifies the backend API is running and accessible."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "resourceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
