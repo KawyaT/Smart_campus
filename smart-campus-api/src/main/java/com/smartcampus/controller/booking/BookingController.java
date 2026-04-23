@@ -19,6 +19,7 @@ import com.smartcampus.dto.request.booking.BookingDecisionRequest;
 import com.smartcampus.dto.request.booking.BookingCreateRequest;
 import com.smartcampus.dto.request.booking.BookingUpdateRequest;
 import com.smartcampus.dto.response.booking.BookingAnalyticsResponse;
+import com.smartcampus.dto.response.booking.BookingQrResponse;
 import com.smartcampus.dto.response.booking.BookingResponse;
 import com.smartcampus.model.booking.BookingStatus;
 import com.smartcampus.service.booking.BookingService;
@@ -122,5 +123,15 @@ public class BookingController {
             reviewerId,
             reviewerName
         ));
+    }
+
+    @PostMapping("/{bookingId}/generate-qr")
+    public ResponseEntity<BookingQrResponse> generateQrCode(@PathVariable String bookingId) {
+        return ResponseEntity.ok(bookingService.generateQrCode(bookingId));
+    }
+
+    @GetMapping("/{bookingId}/qr")
+    public ResponseEntity<BookingQrResponse> getQrCode(@PathVariable String bookingId) {
+        return ResponseEntity.ok(bookingService.getExistingQrCode(bookingId));
     }
 }

@@ -1,3 +1,5 @@
+import QRDisplay from '../../components/QRDisplay'
+
 export default function BookingUserPage({
   resources,
   selectedResource,
@@ -197,9 +199,12 @@ export default function BookingUserPage({
                   ) : null}
 
                   {booking.status === 'APPROVED' ? (
-                    <button className="cancel-btn" type="button" onClick={() => onCancelBooking(booking.id)}>
-                      Cancel Booking
-                    </button>
+                    <>
+                      <QRDisplay booking={booking} />
+                      <button className="cancel-btn" type="button" onClick={() => onCancelBooking(booking.id)}>
+                        Cancel Booking
+                      </button>
+                    </>
                   ) : null}
 
                   {booking.status === 'PENDING' ? (

@@ -3,29 +3,34 @@ package com.smartcampus.service.booking;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.smartcampus.dto.request.booking.BookingCreateRequest;
 import com.smartcampus.dto.request.booking.BookingUpdateRequest;
 import com.smartcampus.dto.response.booking.BookingAnalyticsResponse;
+import com.smartcampus.dto.response.booking.BookingQrResponse;
 import com.smartcampus.dto.response.booking.BookingResponse;
 import com.smartcampus.dto.response.booking.BookingUsageCount;
+import com.smartcampus.dto.response.booking.CheckInVerificationResponse;
 import com.smartcampus.model.booking.Booking;
 import com.smartcampus.model.booking.BookingStatus;
 import com.smartcampus.model.resource.Resource;
 import com.smartcampus.repository.booking.BookingRepository;
 import com.smartcampus.repository.resource.ResourceRepository;
 import com.smartcampus.service.NotificationService;
+import com.smartcampus.util.QrCodeUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,10 +49,16 @@ public class BookingService {
     private static final int TOP_HOUR_LIMIT = 6;
     private static final LocalTime BOOKING_WINDOW_START = LocalTime.of(8, 30);
     private static final LocalTime BOOKING_WINDOW_END = LocalTime.of(17, 0);
+    private static final int QR_SIZE = 320;
 
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final NotificationService notificationService;
+    private final QrCodeUtil qrCodeUtil;
+    private final BookingQrMailService bookingQrMailService;
+
+    @Value("${app.checkin.base-url:http://localhost:8080}")
+    private String checkInBaseUrl;
 
     public BookingResponse createBooking(BookingCreateRequest request, String requesterId, String requesterName) {
         validateTimeRange(request.startTime(), request.endTime());
@@ -66,6 +77,8 @@ public class BookingService {
             .purpose(request.purpose().trim())
             .expectedAttendees(request.expectedAttendees())
             .status(BookingStatus.PENDING)
+            .qrGenerated(false)
+            .qrUsed(false)
             .createdAt(LocalDateTime.now())
             .updatedAt(LocalDateTime.now())
             .build();
@@ -224,6 +237,13 @@ public class BookingService {
         booking.setReviewedAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
 
+        if (decision == BookingStatus.APPROVED) {
+            if (!StringUtils.hasText(booking.getQrToken())) {
+                booking.setQrToken(UUID.randomUUID().toString());
+            }
+            booking.setQrGenerated(true);
+        }
+
         Booking saved = bookingRepository.save(booking);
         String resourceLabel = bookingResourceLabel(saved);
         if (decision == BookingStatus.APPROVED) {
@@ -231,6 +251,7 @@ public class BookingService {
                 saved.getRequesterId(),
                 "Your booking for " + resourceLabel + " was approved."
             );
+            bookingQrMailService.sendApprovedBookingQrMail(saved, buildCheckInUrl(saved.getQrToken()));
         } else {
             String suffix = StringUtils.hasText(reason) ? " Reason: " + reason.trim() : "";
             notifyBooking(
@@ -239,6 +260,98 @@ public class BookingService {
             );
         }
         return toResponse(saved);
+    }
+
+    public BookingQrResponse generateQrCode(String bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+
+        if (booking.getStatus() != BookingStatus.APPROVED) {
+            throw new InvalidBookingStateException("QR code can only be generated for approved bookings");
+        }
+
+        if (!StringUtils.hasText(booking.getQrToken())) {
+            booking.setQrToken(UUID.randomUUID().toString());
+        }
+
+        booking.setQrGenerated(true);
+        booking.setUpdatedAt(LocalDateTime.now());
+        Booking saved = bookingRepository.save(booking);
+
+        String verifyUrl = buildCheckInUrl(saved.getQrToken());
+        String qrImageBase64 = qrCodeUtil.generateBase64Png(verifyUrl, QR_SIZE, QR_SIZE);
+
+        return new BookingQrResponse(
+            saved.getId(),
+            saved.getQrToken(),
+            qrImageBase64,
+            saved.isQrGenerated(),
+            saved.isQrUsed()
+        );
+    }
+
+    public BookingQrResponse getExistingQrCode(String bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+
+        if (!booking.isQrGenerated() || !StringUtils.hasText(booking.getQrToken())) {
+            throw new InvalidBookingStateException("QR code has not been generated for this booking");
+        }
+
+        String verifyUrl = buildCheckInUrl(booking.getQrToken());
+        String qrImageBase64 = qrCodeUtil.generateBase64Png(verifyUrl, QR_SIZE, QR_SIZE);
+
+        return new BookingQrResponse(
+            booking.getId(),
+            booking.getQrToken(),
+            qrImageBase64,
+            booking.isQrGenerated(),
+            booking.isQrUsed()
+        );
+    }
+
+    public CheckInVerificationResponse verifyCheckIn(String token) {
+        if (!StringUtils.hasText(token)) {
+            throw new IllegalArgumentException("Token is required");
+        }
+
+        Booking booking = bookingRepository.findByQrToken(token.trim())
+            .orElseThrow(() -> new BookingNotFoundException("Invalid QR token"));
+
+        if (booking.getStatus() != BookingStatus.APPROVED) {
+            throw new InvalidBookingStateException("Booking is not approved for check-in");
+        }
+
+        if (booking.isQrUsed()) {
+            throw new InvalidBookingStateException("This QR code has already been used");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = LocalDateTime.of(booking.getBookingDate(), booking.getStartTime());
+        LocalDateTime end = LocalDateTime.of(booking.getBookingDate(), booking.getEndTime());
+
+        if (now.isBefore(start) || now.isAfter(end)) {
+            throw new InvalidBookingStateException("Check-in is only valid during the booking time range");
+        }
+
+        booking.setQrUsed(true);
+        booking.setUpdatedAt(now);
+        Booking saved = bookingRepository.save(booking);
+
+        return new CheckInVerificationResponse(
+            true,
+            "Check-in successful",
+            saved.getId(),
+            saved.getResourceId(),
+            now
+        );
+    }
+
+    private String buildCheckInUrl(String token) {
+        String base = checkInBaseUrl.endsWith("/")
+            ? checkInBaseUrl.substring(0, checkInBaseUrl.length() - 1)
+            : checkInBaseUrl;
+        return base + "/api/checkin/verify?token=" + token;
     }
 
     private void notifyBooking(String userId, String message) {
@@ -372,6 +485,8 @@ public class BookingService {
             booking.getPurpose(),
             booking.getExpectedAttendees(),
             booking.getStatus(),
+            booking.isQrGenerated(),
+            booking.isQrUsed(),
             booking.getDecisionReason(),
             booking.getCancellationReason(),
             booking.getCreatedAt(),

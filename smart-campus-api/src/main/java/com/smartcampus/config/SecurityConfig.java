@@ -79,6 +79,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/login", "/api/auth/signup").permitAll()
                     .requestMatchers("/api/health").permitAll()
                     .requestMatchers("/api/users/roles").permitAll()
+                    .requestMatchers("/api/checkin/verify").permitAll()
                     .anyRequest().authenticated()
             )
                     .exceptionHandling(ex -> ex

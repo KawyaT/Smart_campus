@@ -47,6 +47,13 @@ public class Booking {
     @Indexed
     private BookingStatus status;
 
+    @Indexed(unique = true, sparse = true)
+    private String qrToken;
+
+    private boolean qrGenerated;
+
+    private boolean qrUsed;
+
     private String decisionReason;
 
     private String reviewedById;

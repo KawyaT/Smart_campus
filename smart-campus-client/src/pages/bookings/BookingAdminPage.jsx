@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import QRScanner from '../../components/QRScanner'
 
 export default function BookingAdminPage({
   isLoadingBookings,
@@ -206,6 +207,7 @@ export default function BookingAdminPage({
 
   return (
     <>
+      <QRScanner />
       <div className="booking-content admin-layout">
         <article className="card reveal analytics-card">
           <div className="table-head">

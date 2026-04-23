@@ -22,6 +22,8 @@ public record BookingResponse(
     String purpose,
     Integer expectedAttendees,
     BookingStatus status,
+    boolean qrGenerated,
+    boolean qrUsed,
     String decisionReason,
     String cancellationReason,
     LocalDateTime createdAt,
