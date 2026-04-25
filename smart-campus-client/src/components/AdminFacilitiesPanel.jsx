@@ -23,7 +23,7 @@ export default function AdminFacilitiesPanel() {
   const [showModal, setShowModal] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
   const [viewingResource, setViewingResource] = useState(null);
-
+//fetch resources with optional filters. If no filters are provided, fetch all resources. We set loading state to true while fetching and handle any errors that occur
   const fetchResources = async (f = {}) => {
     setLoading(true);
     try {
@@ -42,15 +42,15 @@ export default function AdminFacilitiesPanel() {
       setLoading(false);
     }
   };
-
+//fetch resources on component mount and whenever filters change
   useEffect(() => { fetchResources(filters); }, [filters]);
-
+//handle save for both creating and updating resources. 
   const handleSave = async (data) => {
     try {
       if (editingResource) {
-        await updateResource(editingResource.id, data);
+        await updateResource(editingResource.id, data); //we're editing an existing resource
       } else {
-        await createResource(data);
+        await createResource(data); // creating a new resource,
       }
       setShowModal(false);
       setEditingResource(null);
@@ -70,12 +70,12 @@ export default function AdminFacilitiesPanel() {
       alert('Error deleting.');
     }
   };
-
+//when edit button is clicked on a resource card, we set the editingResource state to that resource and show the modal. The ResourceFormModal will populate its form fields based on the editingResource prop, allowing us to reuse the same modal for both creating and editing resources
   const handleEdit = (resource) => {
     setEditingResource(resource);
     setShowModal(true);
   };
-
+//view resource details in a modal
   const handleView = (resource) => setViewingResource(resource);
   const handleCloseDetail = () => setViewingResource(null);
 
@@ -84,7 +84,7 @@ export default function AdminFacilitiesPanel() {
     const s = filters.search.toLowerCase();
     return r.name?.toLowerCase().includes(s) || r.location?.toLowerCase().includes(s);
   });
-
+//stat cards data. We calculate the values for each stat based on the current resources and define icons and colors for each stat card. The stats include total resources, active resources, labs, and out of service resources
   const stats = [
     { label: 'Total resources', value: resources.length,
       iconBg: isDark ? '#0c2a1f' : '#d1fae5', iconColor: c.success,
@@ -125,7 +125,7 @@ export default function AdminFacilitiesPanel() {
           </div>
         </div>
       </section>
-
+         {/* admin toolbar with add resource button. This section is only visible to admins. When the "Add resource" button is clicked, we clear any editingResource state and show the ResourceFormModal for creating a new resource */}
       {isAdmin ? (
         <div className="admin-embed-toolbar admin-embed-toolbar--spread">
           <span className="admin-embed-toolbar-hint" aria-hidden />

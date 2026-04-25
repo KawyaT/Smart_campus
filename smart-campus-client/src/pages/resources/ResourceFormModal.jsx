@@ -25,18 +25,20 @@ export default function ResourceFormModal({ resource, onSave, onClose }) {
     fontSize: '11px', color: c.danger,
     marginBottom: '10px', display: 'block',
   };
-
+ //validation is done on change and on submit, errors are stored in an object with field names as keys
   const [form, setForm] = useState({
     name: '', type: 'LAB', capacity: '', location: '',
     description: '', status: 'ACTIVE', availabilityWindows: [],
   });
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-
+ 
+  //editing an existing resource, populate form with current values. Capacity is stored as number but we want to show it as string in the input
   useEffect(() => {
     if (resource) setForm({ ...resource, capacity: resource.capacity || '' });
   }, [resource]);
 
+  //update form state and re-validate field if form has already been submitted once. This allows for real-time validation feedback after the first submit attempt
   const set = (key, val) => {
     const updated = { ...form, [key]: val };
     setForm(updated);
@@ -44,7 +46,7 @@ export default function ResourceFormModal({ resource, onSave, onClose }) {
       setErrors(validateResourceForm(updated));
     }
   };
-
+//day selection toggles availability window for that day. If it already exists, remove it. If not, add a new window with default times. When updating open/close times, we need to ensure the value is in HH:MM:SS format for consistency
   const toggleDay = (day) => {
     const exists = form.availabilityWindows.find(w => w.day === day);
     set('availabilityWindows', exists
@@ -52,13 +54,14 @@ export default function ResourceFormModal({ resource, onSave, onClose }) {
       : [...form.availabilityWindows, { day, openTime: '08:00:00', closeTime: '18:00:00' }]
     );
   };
-
+//time updates for availability windows. We find the window for the given day and update either openTime or closeTime based on the field parameter. The value from the time input is in HH:MM format, so we append ':00' to convert it to HH:MM:SS before storing it in the form state
   const updateWindow = (day, field, value) => {
     set('availabilityWindows', form.availabilityWindows.map(w =>
       w.day === day ? { ...w, [field]: value } : w
     ));
   };
 
+  //submit form
   const handleSubmit = () => {
     setSubmitted(true);
     const newErrors = validateResourceForm(form);
@@ -66,7 +69,8 @@ export default function ResourceFormModal({ resource, onSave, onClose }) {
     if (Object.keys(newErrors).length > 0) return;
     onSave({ ...form, capacity: form.capacity ? Number(form.capacity) : null });
   };
-
+ 
+  //input styles with error state. If there's an error for the field, we show a red border. Otherwise, we use the default border color from the theme
   const getInputStyle = (field) => ({
     ...inputBase,
     border: errors[field] ? `1px solid ${c.danger}` : `1px solid ${c.border}`,
